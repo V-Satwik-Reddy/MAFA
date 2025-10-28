@@ -1,0 +1,128 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Lock, Mail, UserPlus, User } from 'lucide-react';
+
+const SignupPage = () => {
+    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const navigate = useNavigate();
+
+    const handleSignup = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+
+        try {
+            const response = await fetch("http://localhost:8080/auth/signup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, email, password }),
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                alert("Signup successful!");
+                navigate("/home");
+            } else {
+                alert(data.data || "Signup failed");
+            }
+        } catch (error) {
+            console.error("Signup error:", error);
+            alert("Something went wrong. Please try again.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 flex items-center justify-center p-4">
+            <div className="max-w-md w-full">
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20">
+                    <div className="flex flex-col items-center mb-8">
+                        <div className="bg-purple-600 p-3 rounded-full mb-4">
+                            <UserPlus className="w-8 h-8 text-white" />
+                        </div>
+                        <h1 className="text-3xl font-bold text-white mb-2">Create Account</h1>
+                        <p className="text-gray-300 text-sm">Join the MCP Multi-Agent System</p>
+                    </div>
+
+                    <form onSubmit={handleSignup} className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-200 mb-2">
+                                Username
+                            </label>
+                            <div className="relative">
+                                <User className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                                <input
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    placeholder="Enter your username"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-200 mb-2">
+                                Email Address
+                            </label>
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    placeholder="Enter your email"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-200 mb-2">
+                                Password
+                            </label>
+                            <div className="relative">
+                                <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    placeholder="Enter your password"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50"
+                        >
+                            {isLoading ? 'Signing Up...' : 'Sign Up'}
+                        </button>
+                    </form>
+
+                    <div className="mt-6 text-center">
+                        <p className="text-sm text-gray-300">
+                            Already have an account?{' '}
+                            <a
+                                href="/login"
+                                className="text-purple-400 hover:text-purple-300 font-medium"
+                            >
+                                Sign In
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default SignupPage;
