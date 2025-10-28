@@ -64,3 +64,5 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
+//make profile and logout in the same button as a dropdown

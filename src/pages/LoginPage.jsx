@@ -9,14 +9,25 @@ const LoginPage = () => {
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
-
-        // Simulate API call
-        setTimeout(() => {
-            localStorage.setItem('token', 'demo-token');
-            navigate('/home');
-        }, 1500);
+         e.preventDefault();
+            try {
+                const response = await fetch("http://localhost:8080/auth/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password }),
+                });
+                console.log(response)
+    
+                const data = await response.json();
+                if (response.ok) {
+                    navigate("/home");
+                } else {
+                    console.log(data);
+                    alert(data.data || "Login failed");
+                }
+            } catch (error) {
+                console.error("Login error:", error);
+            }
     };
 
     return (

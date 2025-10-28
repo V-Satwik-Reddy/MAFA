@@ -38,6 +38,7 @@ const ChatPage = () => {
         setIsTyping(true);
 
         // Simulate AI response
+
         setTimeout(() => {
             const botMessage = {
                 id: messages.length + 2,
@@ -48,6 +49,8 @@ const ChatPage = () => {
             setMessages(prev => [...prev, botMessage]);
             setIsTyping(false);
         }, 2000);
+
+        //edit the thing such that when generating an ans the user should not send any more messages, he can keep it typed but cannt send the message
     };
 
     return (
@@ -138,3 +141,7 @@ const ChatPage = () => {
 };
 
 export default ChatPage;
+
+
+//change the ui such that the chat should be in a window inside the page and the content inside the window should scroll not the entier page
+
