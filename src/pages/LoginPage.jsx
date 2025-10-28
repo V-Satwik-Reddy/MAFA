@@ -20,6 +20,7 @@ const LoginPage = () => {
     
                 const data = await response.json();
                 if (response.ok) {
+                    localStorage.setItem("userEmail", data.email || email);
                     navigate("/home");
                 } else {
                     console.log(data);

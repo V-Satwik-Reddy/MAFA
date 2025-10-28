@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, UserPlus, User } from 'lucide-react';
+import { Lock, Mail, UserPlus, User, Phone, DollarSign } from 'lucide-react';
 
 const SignupPage = () => {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [phone, setPhone] = useState('');
+    const [balance, setbalance] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -17,15 +19,16 @@ const SignupPage = () => {
             const response = await fetch("http://localhost:8080/auth/signup", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, email, password }),
+                body: JSON.stringify({ username, email, password, phone, balance }),
             });
 
             const data = await response.json();
             if (response.ok) {
+                localStorage.setItem("userEmail", data.email || email);
                 alert("Signup successful!");
                 navigate("/home");
             } else {
-                alert(data.data || "Signup failed");
+                alert(data.message || "Signup failed");
             }
         } catch (error) {
             console.error("Signup error:", error);
@@ -48,6 +51,7 @@ const SignupPage = () => {
                     </div>
 
                     <form onSubmit={handleSignup} className="space-y-6">
+                        {/* Username */}
                         <div>
                             <label className="block text-sm font-medium text-gray-200 mb-2">
                                 Username
@@ -65,6 +69,7 @@ const SignupPage = () => {
                             </div>
                         </div>
 
+                        {/* Email */}
                         <div>
                             <label className="block text-sm font-medium text-gray-200 mb-2">
                                 Email Address
@@ -82,6 +87,45 @@ const SignupPage = () => {
                             </div>
                         </div>
 
+                        {/* Phone Number */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-200 mb-2">
+                                Phone Number
+                            </label>
+                            <div className="relative">
+                                <Phone className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                                <input
+                                    type="tel"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    placeholder="Enter your phone number"
+                                    pattern="[0-9]{10}"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        {/* Investment Balance */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-200 mb-2">
+                                Initial Investment Balance
+                            </label>
+                            <div className="relative">
+                                <DollarSign className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                                <input
+                                    type="number"
+                                    value={balance}
+                                    onChange={(e) => setbalance(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    placeholder="Enter initial balance"
+                                    min="0"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        {/* Password */}
                         <div>
                             <label className="block text-sm font-medium text-gray-200 mb-2">
                                 Password
