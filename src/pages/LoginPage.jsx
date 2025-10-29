@@ -1,30 +1,28 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, TrendingUp } from 'lucide-react';
-
+import api from '../api/axios';
 const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
          e.preventDefault();
             try {
-                const response = await fetch("http://localhost:8080/auth/login", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email, password }),
+                const response = await api.post("/auth/login", {
+                    email,
+                    password
                 });
-                console.log(response)
-    
-                const data = await response.json();
-                if (response.ok) {
+
+                const data = response.data;
+                if (response.status === 200) {
+                    localStorage.setItem('token', data.token);
                     localStorage.setItem("userEmail", data.email || email);
                     navigate("/home");
                 } else {
                     console.log(data);
-                    alert(data.data || "Login failed");
+                    alert(data.message || "Login failed");
                 }
             } catch (error) {
                 console.error("Login error:", error);
@@ -80,11 +78,14 @@ const LoginPage = () => {
 
                         <button
                             type="submit"
-                            disabled={isLoading}
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50"
-                        >
-                            {isLoading ? 'Signing In...' : 'Sign In'}
+                        >Log-In
                         </button>
+                        <div className="mt-6 text-center">
+                            <a href="/signup" className="text-sm text-blue-400 hover:text-blue-300">
+                                Don't have an account? Sign Up
+                            </a>
+                        </div>
                     </form>
 
                     {/* <div className="mt-6 text-center">

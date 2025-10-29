@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, UserPlus, User, Phone, DollarSign } from 'lucide-react';
+import api from '../api/axios';
 
 const SignupPage = () => {
     const [username, setUsername] = useState('');
@@ -16,15 +17,18 @@ const SignupPage = () => {
         setIsLoading(true);
 
         try {
-            const response = await fetch("http://localhost:8080/auth/signup", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, email, password, phone, balance }),
+            const response = await api.post("/auth/signup", {
+                username,
+                email,
+                password,
+                phone,
+                balance
             });
 
-            const data = await response.json();
-            if (response.ok) {
-                localStorage.setItem("userEmail", data.email || email);
+            const data = response.data;
+            if (response!==200) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem("userEmail", data.data.email || email);
                 alert("Signup successful!");
                 navigate("/home");
             } else {
@@ -159,7 +163,7 @@ const SignupPage = () => {
                                 href="/login"
                                 className="text-purple-400 hover:text-purple-300 font-medium"
                             >
-                                Sign In
+                                Log In
                             </a>
                         </p>
                     </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Shield, DollarSign, Target, Save, Loader } from 'lucide-react';
 import Navbar from '../components/Navbar';
-
+import api from '../api/axios';
 const ProfilePage = () => {
     const [profile, setProfile] = useState({
         username: '',
@@ -25,22 +25,19 @@ const ProfilePage = () => {
                     return;
                 }
 
-                const response = await fetch(`http://localhost:8080/profile/getuser/${storedEmail}`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                const response = await api.get(`/profile/getuser/${storedEmail}`);
+                if (response.status !== 200) {
+                    console.log(response);
+                    throw new Error('Failed to fetch user profile');
+                }
 
-                if (!response.ok) throw new Error('Failed to fetch user profile');
-
-                const data = await response.json();
-                
-                console.log(data)
-                // Assuming response = { name, email, phone, budget }
+                const data = response.data.data;
+                console.log('Fetched profile data:', data);
                 setProfile({
-                    username: data.data.username || '',
-                    email: data.data.email || storedEmail,
-                    phone: data.data.phone || '',
-                    balance: data.data.balance || '',
+                    username: data.username || '',
+                    email: data.email || storedEmail,
+                    phone: data.phone || '',
+                    balance: data.balance || '',
                     riskProfile: data.riskProfile || 'moderate',
                     preferredAssets: data.preferredAssets || ['stocks'],
                 });
@@ -58,13 +55,11 @@ const ProfilePage = () => {
         // alert('Profile updated successfully!');
         try {
             setIsEditing(false);
-            const response = await fetch('http://localhost:8080/profile/user', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(profile),
+            const response = await api.put('/profile/user', {
+                ...profile,
             });
 
-            if (!response.ok) throw new Error('Failed to update profile');
+            if (response.status !== 200) throw new Error('Failed to update profile');
 
             alert('Profile updated successfully!');
         } catch (err) {
