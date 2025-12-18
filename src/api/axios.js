@@ -2,19 +2,22 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8080', // your Spring Boot backend
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: 'http://localhost:8080',
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true // REQUIRED for cookies
 });
 
-// Interceptor: Automatically attach JWT token to every request
+let accessToken = null;
+
+export const setAccessToken = token => {
+  accessToken = token;
+};
+
 api.interceptors.request.use(config => {
-  const token = localStorage.getItem('token'); // or sessionStorage
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
   return config;
-}, error => Promise.reject(error));
+});
 
 export default api;
