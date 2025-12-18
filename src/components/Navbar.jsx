@@ -1,6 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, MessageSquare, BarChart3, User, LogOut, TrendingUp } from 'lucide-react';
+import api from "../api/axios";
+import { useAuth } from "../context/AuthContext";
+
+
 
 const Navbar = () => {
     const location = useLocation();
@@ -13,11 +17,16 @@ const Navbar = () => {
         { path: '/dashboard', icon: BarChart3, label: 'Dashboard' },
         { path: '/chat', icon: MessageSquare, label: 'AI Chat' },
     ];
-
-    const handleLogout = () => {
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('token');
-        navigate('/');
+    const { logout } = useAuth();
+    const handleLogout = async () => {
+        try {
+            await api.post("/auth/logout"); // clears refresh cookie
+        } catch (e) {
+            // ignore – logout should be client-forced anyway
+        } finally {
+            logout();       // clears access token + user from context
+            navigate("/");
+        }
     };
 
     // Close dropdown when clicking outside

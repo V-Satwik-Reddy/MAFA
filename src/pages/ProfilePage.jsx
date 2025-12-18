@@ -18,14 +18,8 @@ const ProfilePage = () => {
     useEffect(() => {
         const fetchUserProfile = async () => {
             try {
-                const storedEmail = localStorage.getItem('userEmail');
-                if (!storedEmail) {
-                    console.error('No email found in localStorage');
-                    setLoading(false);
-                    return;
-                }
-
-                const response = await api.get(`/profile/getuser/${storedEmail}`);
+                
+                const response = await api.get('/profile/me');
                 if (response.status !== 200) {
                     console.log(response);
                     throw new Error('Failed to fetch user profile');
@@ -35,7 +29,7 @@ const ProfilePage = () => {
                 console.log('Fetched profile data:', data);
                 setProfile({
                     username: data.username || '',
-                    email: data.email || storedEmail,
+                    email: data.email || '',
                     phone: data.phone || '',
                     balance: data.balance || '',
                     riskProfile: data.riskProfile || 'moderate',
@@ -64,7 +58,11 @@ const ProfilePage = () => {
             alert('Profile updated successfully!');
         } catch (err) {
             console.error('Error updating profile:', err);
-            alert('Failed to update profile. Try again later.');
+            if (err.response.data.data==="JWT signature does not match locally computed signature. JWT validity cannot be asserted and should not be trusted.") {
+                window.location.reload();
+            }else{
+                alert('Failed to update profile. Please try again.');
+            }
         }
     };
 
