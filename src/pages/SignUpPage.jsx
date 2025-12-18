@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, UserPlus, User, Phone, DollarSign } from 'lucide-react';
 import api from '../api/axios';
+import { useAuth } from "../context/AuthContext";
 
 const SignupPage = () => {
     const [username, setUsername] = useState('');
@@ -11,36 +12,47 @@ const SignupPage = () => {
     const [balance, setbalance] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
-
+    const { setAccessToken, setUser } = useAuth();
     const handleSignup = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
+    e.preventDefault();
+    setIsLoading(true);
 
-        try {
-            const response = await api.post("/auth/signup", {
-                username,
-                email,
-                password,
-                phone,
-                balance
-            });
+    try {
+        const response = await api.post("/auth/signup", {
+            username,
+            email,
+            password,
+            phone,
+            balance
+        });
+        const { accessToken, user } = response.data.data;
 
-            const data = response.data;
-            if (response!==200) {
-                localStorage.setItem('token', data.token);
-                localStorage.setItem("userEmail", data.data.email || email);
-                alert("Signup successful!");
-                navigate("/home");
+        setAccessToken(accessToken);
+        setUser(user);
+
+        alert("Signup successful!");
+        navigate("/home");
+    } catch (error) {
+        console.error("Signup error:", error);
+
+        // Axios attaches the HTTP status under error.response
+        if (error.response) {
+            const status = error.response.status;
+            const msg = error.response.data?.message || "Signup failed";
+
+            if (status === 409) {
+                alert("User already exists. Please log in instead.");
             } else {
-                alert(data.message || "Signup failed");
+                alert(msg);
             }
-        } catch (error) {
-            console.error("Signup error:", error);
-            alert("Something went wrong. Please try again.");
-        } finally {
-            setIsLoading(false);
+        } else {
+            alert("Network error. Please try again later.");
         }
-    };
+    } finally {
+        setIsLoading(false);
+    }
+};
+
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 flex items-center justify-center p-4">

@@ -2,32 +2,36 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, TrendingUp } from 'lucide-react';
 import api from '../api/axios';
+import { useAuth } from "../context/AuthContext";
+
 const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const navigate = useNavigate();
-
+    const { setAccessToken, setUser } = useAuth();
     const handleLogin = async (e) => {
-         e.preventDefault();
-            try {
-                const response = await api.post("/auth/login", {
-                    email,
-                    password
-                });
+        e.preventDefault();
 
-                const data = response.data;
-                if (response.status === 200) {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem("userEmail", data.email || email);
-                    navigate("/home");
-                } else {
-                    console.log(data);
-                    alert(data.message || "Login failed");
-                }
-            } catch (error) {
-                console.error("Login error:", error);
-            }
+        try {
+            const response = await api.post("/auth/login", {email,password});
+            const { accessToken, user } = response.data.data;
+
+            setAccessToken(accessToken);
+
+            setUser(user);
+
+            navigate("/home");
+
+        } catch (error) {
+            console.error("Login error:", error);
+
+            const message =
+            error.response?.data?.message || "Login failed";
+
+            alert(message);
+        }
     };
+
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-900 via-slate-900 to-purple-900 flex items-center justify-center p-4">
