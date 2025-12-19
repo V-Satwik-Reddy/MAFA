@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import api from '../api/axios';
 
 const ChatPage = () => {
     const [messages, setMessages] = useState([
@@ -15,6 +16,7 @@ How can I assist you today?`,
     ]);
     const [inputMessage, setInputMessage] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [showLoader, setShowLoader] = useState(false);
     const messagesEndRef = useRef(null);
 
     const scrollToBottom = () => {
@@ -24,6 +26,32 @@ How can I assist you today?`,
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    // Stream bot response word-by-word
+    const streamBotResponse = (fullText) => {
+        const botId = Date.now();
+        const placeholder = {
+            id: botId,
+            sender: 'bot',
+            text: '',
+            timestamp: new Date(),
+        };
+
+        // add placeholder bot message
+        setMessages(prev => [...prev, placeholder]);
+
+        const words = fullText.split(' ');
+        let i = 0;
+        const interval = setInterval(() => {
+            i += 1;
+            const partial = words.slice(0, i).join(' ');
+            setMessages(prev => prev.map(m => (m.id === botId ? { ...m, text: partial } : m)));
+            if (i >= words.length) {
+                clearInterval(interval);
+                setIsTyping(false);
+            }
+        }, 40); // speed of streaming in ms per word
+    };
 
     const handleSendMessage = async () => {
         // prevent sending when no input or bot is generating
@@ -39,23 +67,40 @@ How can I assist you today?`,
         setMessages(prev => [...prev, userMessage]);
         setInputMessage('');
         setIsTyping(true);
+        setShowLoader(true);
 
-        // Simulate AI response delay
-        setTimeout(() => {
+        try {
+            // show analyzing indicator briefly while awaiting API
+            setShowLoader(true);
+            const { data } = await api.post('/chat', { query: inputMessage });
+            setShowLoader(false);
+
+            // Normalize possible response shapes
+            let fullText = '';
+            if (typeof data === 'string') {
+                fullText = data;
+            } else if (data) {
+                fullText = data.reply || data.message || data.text || JSON.stringify(data);
+            }
+
+            // Fallback if empty
+            if (!fullText) {
+                fullText = 'No response received from the server.';
+            }
+
+            streamBotResponse(fullText);
+        } catch (err) {
+            setShowLoader(false);
+            setIsTyping(false);
+            const errorText = err?.response?.data?.message || err?.message || 'Failed to reach the server.';
             const botMessage = {
-                id: messages.length + 2,
+                id: Date.now(),
                 sender: 'bot',
-                text: `Based on current market analysis from our Multi-Agent System:
-
-📊 Technical Analysis: AAPL shows strong bullish momentum with RSI at 62.
-💭 Sentiment Analysis: FinBERT sentiment score: +0.78 (Positive)
-🎯 Investment Strategy: Recommend BUY with target price $185.
-⚠️ Risk Assessment: Moderate volatility detected.`,
+                text: `Error: ${errorText}`,
                 timestamp: new Date(),
             };
             setMessages(prev => [...prev, botMessage]);
-            setIsTyping(false);
-        }, 2000);
+        }
     };
 
     return (
@@ -125,7 +170,7 @@ How can I assist you today?`,
                             </div>
                         ))}
 
-                        {isTyping && (
+                        {showLoader && isTyping && (
                             <div className="flex gap-3">
                                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center">
                                     <Bot className="w-5 h-5 text-white" />

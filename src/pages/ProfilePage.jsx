@@ -26,7 +26,7 @@ const ProfilePage = () => {
                 }
 
                 const data = response.data.data;
-                console.log('Fetched profile data:', data);
+                // console.log('Fetched profile data:', data);
                 setProfile({
                     username: data.username || '',
                     email: data.email || '',
