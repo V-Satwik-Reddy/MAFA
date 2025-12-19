@@ -87,7 +87,7 @@ const ProfilePage = () => {
                                 <User className="w-12 h-12 text-blue-600" />
                             </div>
                             <div>
-                                <h1 className="text-2xl font-bold text-white">{profile.name}</h1>
+                                <h1 className="text-2xl font-bold text-white">{profile.username}</h1>
                                 <p className="text-blue-100">Investor Profile</p>
                             </div>
                         </div>
@@ -125,7 +125,7 @@ const ProfilePage = () => {
                                 <input
                                     type="text"
                                     value={profile.username}
-                                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                                    onChange={(e) => setProfile({ ...profile, username: e.target.value })}
                                     disabled={!isEditing}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                                 />

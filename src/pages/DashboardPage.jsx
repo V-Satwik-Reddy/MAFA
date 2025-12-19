@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { BarChart3, PieChart, TrendingUp, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BarChart3, PieChart, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import api from '../api/axios';
 
 const DashboardPage = () => {
-    const [portfolioData] = useState({
+    const [portfolioData, setPortfolioData] = useState({
         totalValue: 125430,
         dayChange: 1247,
         dayChangePercent: 0.99,
@@ -18,11 +19,7 @@ const DashboardPage = () => {
             { sector: 'Healthcare', percentage: 20, value: 25086.00 },
             { sector: 'Finance', percentage: 15, value: 18814.50 },
         ],
-        recentTrades: [
-            { id: 1, symbol: 'AAPL', type: 'BUY', shares: 10, price: 178.45, time: '10:30 AM', status: 'executed' },
-            { id: 2, symbol: 'GOOGL', type: 'SELL', shares: 5, price: 142.87, time: '09:15 AM', status: 'executed' },
-            { id: 3, symbol: 'MSFT', type: 'BUY', shares: 5, price: 412.56, time: 'Yesterday', status: 'executed' },
-        ],
+        recentTrades: [],
         agentInsights: [
             { agent: 'Technical Analysis', status: 'active', lastUpdate: '2 mins ago', message: 'Bullish trend detected in AAPL' },
             { agent: 'Sentiment Analysis', status: 'active', lastUpdate: '5 mins ago', message: 'Positive sentiment: +0.78' },
@@ -30,6 +27,46 @@ const DashboardPage = () => {
             { agent: 'Portfolio Manager', status: 'active', lastUpdate: '15 mins ago', message: 'Rebalancing recommended' },
         ],
     });
+
+    useEffect(() => {
+        const fetchTransactions = async () => {
+            try {
+                const { data } = await api.get('/transactions');
+                const raw = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+                const mapped = raw
+                    .map((tx, idx) => {
+                        const shares = Number(tx?.assetQuantity) || 0;
+                        const amount = Number(tx?.amount) || 0;
+                        const price = shares ? amount / shares : 0;
+                        const created = tx?.createdAt ? new Date(tx.createdAt) : null;
+                        const createdMs = created ? created.getTime() : 0;
+                        const time = created
+                            ? created.toLocaleString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+                            : '—';
+
+                        return {
+                            id: tx?.id ?? idx,
+                            symbol: tx?.asset || 'N/A',
+                            type: (tx?.type || '').toUpperCase() === 'SELL' ? 'SELL' : 'BUY',
+                            shares,
+                            price: Number(price.toFixed(2)),
+                            time,
+                            status: 'executed',
+                            createdMs,
+                        };
+                    })
+                    .sort((a, b) => b.createdMs - a.createdMs)
+                    .slice(0, 4)
+                    .map(({ createdMs, ...rest }) => rest); // drop helper field
+                console.log('Fetched transactions:', mapped);
+                setPortfolioData(prev => ({ ...prev, recentTrades: mapped }));
+            } catch (err) {
+                console.error('Failed to fetch transactions', err);
+            }
+        };
+
+        fetchTransactions();
+    }, []);
 
     return (
         <div className="min-h-screen bg-gray-50">
