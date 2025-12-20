@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Mail, Phone, Shield, DollarSign, Target, Save, Loader } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
@@ -14,6 +14,7 @@ const ProfilePage = () => {
 
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
+    const didFetchProfile = useRef(false);
 
     useEffect(() => {
         const fetchUserProfile = async () => {
@@ -42,14 +43,17 @@ const ProfilePage = () => {
             }
         };
 
-        fetchUserProfile();
+        if (!didFetchProfile.current) {
+            didFetchProfile.current = true;
+            fetchUserProfile();
+        }
     }, []);
 
     const handleSave = async () => {
         // alert('Profile updated successfully!');
         try {
             setIsEditing(false);
-            const response = await api.put('/profile/user', {
+            const response = await api.put('/profile/me', {
                 ...profile,
             });
 
