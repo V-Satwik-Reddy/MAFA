@@ -75,6 +75,7 @@ const DashboardPage = () => {
                 const { data } = await api.get('/dashboard');
                 const raw = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
                 console.log('Fetched dashboard data:', raw);
+                const numberOrZero = (val) => (Number.isFinite(val) ? val : 0);
                 const mapped = raw.map((item, idx) => {
                     const shares = Number(item?.shares) || 0;
                     const avgPrice = Number(item?.avgBuyPrice ?? item?.avgprice ?? item?.avg_price) || 0;
@@ -93,13 +94,21 @@ const DashboardPage = () => {
                     };
                 });
 
-                const totalValue = mapped.reduce((sum, p) => sum + (p.value || 0), 0);
-                const totalGain = mapped.reduce((sum, p) => sum + ((p.gain ?? p.loss) || 0), 0);
+                const sorted = [...mapped].sort((a, b) => {
+                    const valueDiff = numberOrZero(b.value) - numberOrZero(a.value);
+                    if (valueDiff !== 0) return valueDiff;
+                    const gainLossA = numberOrZero(a.gain ?? a.loss);
+                    const gainLossB = numberOrZero(b.gain ?? b.loss);
+                    return gainLossB - gainLossA;
+                });
+
+                const totalValue = sorted.reduce((sum, p) => sum + (p.value || 0), 0);
+                const totalGain = sorted.reduce((sum, p) => sum + ((p.gain ?? p.loss) || 0), 0);
                 const dayChangePercent = totalValue ? Number(((totalGain / totalValue) * 100).toFixed(2)) : 0;
 
                 setPortfolioData(prev => ({
                     ...prev,
-                    positions: mapped,
+                    positions: sorted,
                     totalValue: Number(totalValue.toFixed(2)),
                     dayChange: Number(totalGain.toFixed(2)),
                     dayChangePercent,
