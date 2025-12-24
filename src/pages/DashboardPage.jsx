@@ -210,7 +210,7 @@ const DashboardPage = () => {
                                     const cur = Number.isFinite(position.currentPrice) ? position.currentPrice : 0;
                                     const val = Number.isFinite(position.value) ? position.value : 0;
                                     const gl = Number.isFinite(position.gain || position.loss) ? (position.gain || position.loss) : 0;
-                                    const glClass = gl > 0 ? 'text-green-600' : 'text-red-600';
+                                    const glClass = gl >= 0 ? 'text-green-600' : 'text-red-600';
                                     const glPrefix = gl > 0 ? '+' : '';
                                     return (
                                         <tr key={position.symbol} className="border-b hover:bg-gray-50">

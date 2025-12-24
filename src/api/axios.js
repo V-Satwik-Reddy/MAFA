@@ -11,7 +11,6 @@ let accessToken = null;
 
 export const setAccessToken = token => {
   accessToken = token;
-console.log('token', accessToken);
 };
 api.interceptors.request.use(config => {
   if (accessToken) {
