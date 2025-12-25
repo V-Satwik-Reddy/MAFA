@@ -12,6 +12,7 @@ import SignupPage from './pages/SignUpPage';
 import WelcomePage from './pages/WelcomePage';
 import TransactionsPage from './pages/TransactionsPage';
 import TradeExecutionPage from './pages/TradeExecutionPage';
+import GraphsPage from './pages/GraphsPage';
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
@@ -58,6 +59,7 @@ function App() {
         
         <Route path="/transactions" element={<ProtectedRoute><TransactionsPage /></ProtectedRoute>} />
         <Route path="/trade" element={<ProtectedRoute><TradeExecutionPage /></ProtectedRoute>} />
+        <Route path="/graphs" element={<ProtectedRoute><GraphsPage /></ProtectedRoute>} />
         <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />

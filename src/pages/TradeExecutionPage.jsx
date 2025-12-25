@@ -15,29 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
-
-const TOP_TICKERS = [
-    { ticker: 'AAPL', name: 'Apple Inc.', region: 'US' },
-    { ticker: 'MSFT', name: 'Microsoft Corporation', region: 'US' },
-    { ticker: 'AMZN', name: 'Amazon.com Inc.', region: 'US' },
-    { ticker: 'GOOGL', name: 'Alphabet Inc. (Class A)', region: 'US' },
-    { ticker: 'META', name: 'Meta Platforms Inc.', region: 'US' },
-    { ticker: 'NVDA', name: 'NVIDIA Corporation', region: 'US' },
-    { ticker: 'TSLA', name: 'Tesla Inc.', region: 'US' },
-    { ticker: 'JPM', name: 'JPMorgan Chase & Co.', region: 'US' },
-    { ticker: 'V', name: 'Visa Inc.', region: 'US' },
-    { ticker: 'JNJ', name: 'Johnson & Johnson', region: 'US' },
-    { ticker: 'WMT', name: 'Walmart Inc.', region: 'US' },
-    { ticker: 'PG', name: 'Procter & Gamble Co.', region: 'US' },
-    { ticker: 'MA', name: 'Mastercard Incorporated', region: 'US' },
-    { ticker: 'AVGO', name: 'Broadcom Inc.', region: 'US' },
-    { ticker: 'PEP', name: 'PepsiCo Inc.', region: 'US' },
-    { ticker: 'COST', name: 'Costco Wholesale Corporation', region: 'US' },
-    { ticker: 'ORCL', name: 'Oracle Corporation', region: 'US' },
-    { ticker: 'BAC', name: 'Bank of America Corporation', region: 'US' },
-    { ticker: 'NFLX', name: 'Netflix Inc.', region: 'US' },
-    { ticker: 'DIS', name: 'The Walt Disney Company', region: 'US' },
-];
+import { TOP_TICKERS } from '../constants/tickers';
 
 const mapTransactions = (raw) => {
     const safe = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
