@@ -128,7 +128,7 @@ How can I assist you today?`,
             // show analyzing indicator briefly while awaiting API
             setShowLoader(true);
             const endpoint = resolveEndpoint();
-            const { data } = await api.post(endpoint, { query: inputMessage });
+            const { data } = await api.post(endpoint, { userQuery: inputMessage });
             setShowLoader(false);
 
             // Normalize possible response shapes
