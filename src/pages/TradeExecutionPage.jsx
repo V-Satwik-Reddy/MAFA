@@ -58,6 +58,7 @@ const TradeExecutionPage = () => {
     const [balance, setBalance] = useState(null);
     const [balanceLoading, setBalanceLoading] = useState(false);
     const [selectedTicker, setSelectedTicker] = useState(null);
+    const [sortMode, setSortMode] = useState('none'); // none | az | za
     const [priceCache, setPriceCache] = useState({});
     const [priceLoading, setPriceLoading] = useState(false);
     const [transactions, setTransactions] = useState([]);
@@ -150,11 +151,17 @@ const TradeExecutionPage = () => {
 
     const filteredTickers = useMemo(() => {
         const query = searchTerm.trim().toLowerCase();
-        if (!query) return TOP_TICKERS;
-        return TOP_TICKERS.filter((item) =>
-            item.ticker.toLowerCase().includes(query) || item.name.toLowerCase().includes(query)
-        );
-    }, [searchTerm]);
+        const base = query
+            ? TOP_TICKERS.filter((item) =>
+                  item.ticker.toLowerCase().includes(query) || item.name.toLowerCase().includes(query)
+              )
+            : TOP_TICKERS;
+
+        const sorted = [...base];
+        if (sortMode === 'az') sorted.sort((a, b) => a.ticker.localeCompare(b.ticker));
+        if (sortMode === 'za') sorted.sort((a, b) => b.ticker.localeCompare(a.ticker));
+        return sorted;
+    }, [searchTerm, sortMode]);
 
     const getQuantity = (ticker) => {
         const raw = quantities[ticker];
@@ -335,7 +342,16 @@ const TradeExecutionPage = () => {
                             </label>
                         </div>
 
-                        <p className="text-xs text-gray-500 mb-4">Showing {filteredTickers.length} of {TOP_TICKERS.length}</p>
+                        <div className="flex items-center justify-between text-xs text-gray-600 mb-4">
+                            <p>Showing {filteredTickers.length} of {TOP_TICKERS.length}</p>
+                            <button
+                                type="button"
+                                onClick={() => setSortMode((prev) => (prev === 'none' ? 'az' : prev === 'az' ? 'za' : 'none'))}
+                                className="px-2.5 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-medium"
+                            >
+                                Sort: {sortMode === 'none' ? 'None' : sortMode === 'az' ? 'A-Z' : 'Z-A'}
+                            </button>
+                        </div>
 
                         <div className="flex-1 overflow-y-auto pr-1">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

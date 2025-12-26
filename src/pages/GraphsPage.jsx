@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -24,29 +24,43 @@ import api from '../api/axios';
 import { TOP_TICKERS } from '../constants/tickers';
 
 const parseDailyPrices = (raw) => {
-  if (!raw || typeof raw !== 'object') return [];
-  return Object.entries(raw)
-    .map(([date, values]) => {
-      const time = new Date(date);
-      const close = Number(values?.['4. close']);
-      const open = Number(values?.['1. open']);
-      const high = Number(values?.['2. high']);
-      const low = Number(values?.['3. low']);
-      const volume = Number(values?.['5. volume']);
-      if (!Number.isFinite(close) || Number.isNaN(time.getTime())) return null;
-      return {
-        date,
-        label: time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        close,
-        open: Number.isFinite(open) ? open : null,
-        high: Number.isFinite(high) ? high : null,
-        low: Number.isFinite(low) ? low : null,
-        volume: Number.isFinite(volume) ? volume : null,
-        ts: time.getTime(),
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.ts - b.ts);
+  if (!raw) return [];
+
+  const normalize = (dateValue, payload) => {
+    const time = new Date(dateValue);
+    const close = Number(payload?.close ?? payload?.['4. close']);
+    const open = Number(payload?.open ?? payload?.['1. open']);
+    const high = Number(payload?.high ?? payload?.['2. high']);
+    const low = Number(payload?.low ?? payload?.['3. low']);
+    const volume = Number(payload?.volume ?? payload?.['5. volume']);
+    if (!Number.isFinite(close) || Number.isNaN(time.getTime())) return null;
+    return {
+      date: dateValue,
+      label: time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      close,
+      open: Number.isFinite(open) ? open : null,
+      high: Number.isFinite(high) ? high : null,
+      low: Number.isFinite(low) ? low : null,
+      volume: Number.isFinite(volume) ? volume : null,
+      ts: time.getTime(),
+    };
+  };
+
+  if (Array.isArray(raw)) {
+    return raw
+      .map((row) => normalize(row.date, row))
+      .filter(Boolean)
+      .sort((a, b) => a.ts - b.ts);
+  }
+
+  if (typeof raw === 'object') {
+    return Object.entries(raw)
+      .map(([date, values]) => normalize(date, values))
+      .filter(Boolean)
+      .sort((a, b) => a.ts - b.ts);
+  }
+
+  return [];
 };
 
 const PriceTooltip = ({ active, payload, label }) => {
@@ -66,18 +80,26 @@ const GraphsPage = () => {
   const navigate = useNavigate();
   const [selectedTicker, setSelectedTicker] = useState(TOP_TICKERS[0]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortMode, setSortMode] = useState('none'); // none | az | za
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [hoverPoint, setHoverPoint] = useState(null);
+  const lastHoverRef = useRef(null);
 
   const filteredTickers = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    if (!q) return TOP_TICKERS;
-    return TOP_TICKERS.filter((item) =>
-      item.ticker.toLowerCase().includes(q) || item.name.toLowerCase().includes(q)
-    );
-  }, [searchTerm]);
+    const base = q
+      ? TOP_TICKERS.filter((item) =>
+          item.ticker.toLowerCase().includes(q) || item.name.toLowerCase().includes(q)
+        )
+      : TOP_TICKERS;
+
+    const sorted = [...base];
+    if (sortMode === 'az') sorted.sort((a, b) => a.ticker.localeCompare(b.ticker));
+    if (sortMode === 'za') sorted.sort((a, b) => b.ticker.localeCompare(a.ticker));
+    return sorted;
+  }, [searchTerm, sortMode]);
 
   const yDomain = useMemo(() => {
     if (!series.length) return ['auto', 'auto'];
@@ -87,6 +109,20 @@ const GraphsPage = () => {
     const padding = Math.max(1, (max - min) * 0.05);
     return [Math.max(0, min - padding), max + padding];
   }, [series]);
+
+  const handleMouseMove = useCallback((state) => {
+    if (!state?.activePayload || !state.activePayload.length) return;
+    const point = state.activePayload[0].payload;
+    const last = lastHoverRef.current;
+    if (last && last.date === point.date && last.close === point.close) return;
+    lastHoverRef.current = point;
+    setHoverPoint(point);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    lastHoverRef.current = null;
+    setHoverPoint(null);
+  }, []);
 
   useEffect(() => {
     if (!selectedTicker) return;
@@ -167,7 +203,16 @@ const GraphsPage = () => {
                 />
               </label>
             </div>
-            <p className="text-xs text-gray-500">Showing {filteredTickers.length} of {TOP_TICKERS.length}</p>
+            <div className="flex items-center justify-between text-xs text-gray-600">
+              <p>Showing {filteredTickers.length} of {TOP_TICKERS.length}</p>
+              <button
+                type="button"
+                onClick={() => setSortMode((prev) => (prev === 'none' ? 'az' : prev === 'az' ? 'za' : 'none'))}
+                className="px-2.5 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-medium"
+              >
+                Sort: {sortMode === 'none' ? 'None' : sortMode === 'az' ? 'A-Z' : 'Z-A'}
+              </button>
+            </div>
             <div className="flex-1 overflow-y-auto pr-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
                 {filteredTickers.map((item) => {
@@ -238,12 +283,8 @@ const GraphsPage = () => {
                   <LineChart
                     data={series}
                     margin={{ top: 10, right: 20, left: 10, bottom: 10 }}
-                    onMouseMove={(state) => {
-                      if (state?.activePayload && state.activePayload.length) {
-                        setHoverPoint(state.activePayload[0].payload);
-                      }
-                    }}
-                    onMouseLeave={() => setHoverPoint(null)}
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis
