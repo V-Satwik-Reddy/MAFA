@@ -551,14 +551,14 @@ const ToolDisplay = ({ activeTool, onClose }) => {
 
 const ChatPage = () => {
     const [messages, setMessages] = useState([
-        {
-            id: 1,
-            sender: 'bot',
-            text: `Hello! I'm your AI Financial Analyst powered by MCP Multi-Agent System.
-I can help you with market analysis, investment strategies, and portfolio recommendations.
-How can I assist you today?`,
-            timestamp: new Date(),
-        },
+        // {
+        //     id: 1,
+        //     sender: 'bot',
+        //     text: `Hello! I'm your AI Chat Bot for Financial Analysis and Assistance powered by Multi-Agent System.
+        //     I can help you with market analysis, and automated investing tasks.
+        //     How can I assist you today?`,
+        //     timestamp: new Date(),
+        // },
     ]);
     const [inputMessage, setInputMessage] = useState('');
     const [isTyping, setIsTyping] = useState(false);
@@ -654,7 +654,7 @@ How can I assist you today?`,
     const resolveEndpoint = () => {
         if (selectedAgent === 'execute') return '/ea-chat';
         if (selectedAgent === 'research') return '/mra-chat';
-        return '/general';
+        return '/general-chat';
     };
 
     const resolveToolFromResponse = (payload) => {
@@ -690,10 +690,10 @@ How can I assist you today?`,
             // show analyzing indicator briefly while awaiting API
             setShowLoader(true);
             const endpoint = resolveEndpoint();
-            // const { data } = await api.post(endpoint, { userQuery: inputMessage });
-            // setShowLoader(false);
-            const { data } = await api.post('http://localhost:5000/agenttest', { userQuery: inputMessage });
+            const { data } = await api.post(endpoint, { userQuery: inputMessage });
             setShowLoader(false);
+            // const { data } = await api.post('http://localhost:5000/agenttest', { userQuery: inputMessage });
+            // setShowLoader(false);
             // Normalize possible response shapes
             let fullText = '';
             if (typeof data === 'string') {

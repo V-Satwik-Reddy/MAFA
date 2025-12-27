@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Mail, Phone, Shield, DollarSign, Target, Save, Loader } from 'lucide-react';
+import { User, Mail, Phone, Shield, DollarSign, Target, Save, Loader, RefreshCw } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
 const ProfilePage = () => {
@@ -14,6 +14,7 @@ const ProfilePage = () => {
 
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [isUpdatingPrices, setIsUpdatingPrices] = useState(false);
     const didFetchProfile = useRef(false);
 
     useEffect(() => {
@@ -70,6 +71,20 @@ const ProfilePage = () => {
         }
     };
 
+    const handleUpdatePrices = async () => {
+        try {
+            setIsUpdatingPrices(true);
+            const response = await api.post('/updateprices');
+            if (response.status !== 200) throw new Error('Failed to update prices');
+            alert('Prices updated successfully.');
+        } catch (err) {
+            console.error('Error updating prices:', err);
+            alert('Failed to update prices. Please try again.');
+        } finally {
+            setIsUpdatingPrices(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex justify-center items-center bg-gray-50">
@@ -101,22 +116,32 @@ const ProfilePage = () => {
                     <div className="p-6">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-bold text-gray-900">Personal Information</h2>
-                            {!isEditing ? (
+                            <div className="flex items-center gap-3">
                                 <button
-                                    onClick={() => setIsEditing(true)}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                    onClick={handleUpdatePrices}
+                                    disabled={isUpdatingPrices}
+                                    className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 disabled:opacity-60 flex items-center gap-2"
                                 >
-                                    Edit Profile
+                                    <RefreshCw className="w-4 h-4" />
+                                    {isUpdatingPrices ? 'Updating...' : 'Update Prices'}
                                 </button>
-                            ) : (
-                                <button
-                                    onClick={handleSave}
-                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-                                >
-                                    <Save className="w-4 h-4" />
-                                    Save Changes
-                                </button>
-                            )}
+                                {!isEditing ? (
+                                    <button
+                                        onClick={() => setIsEditing(true)}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                    >
+                                        Edit Profile
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleSave}
+                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+                                    >
+                                        <Save className="w-4 h-4" />
+                                        Save Changes
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
