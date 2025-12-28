@@ -85,6 +85,7 @@ const GraphsPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [hoverPoint, setHoverPoint] = useState(null);
+  const [lastxddays, setLastxddays] = useState(null);
   const lastHoverRef = useRef(null);
 
   const filteredTickers = useMemo(() => {
@@ -134,6 +135,7 @@ const GraphsPage = () => {
         const res = await api.get('/stockdailyprices', { params: { symbol: selectedTicker.ticker } });
         const raw = res?.data?.data ?? res?.data?.prices ?? res?.data;
         const parsed = parseDailyPrices(raw);
+        setLastxddays(parsed.length);
         if (!parsed.length) throw new Error('No price data');
         setSeries(parsed);
       } catch (err) {
@@ -172,7 +174,7 @@ const GraphsPage = () => {
           <div className="flex items-center gap-3 text-sm text-gray-600">
             <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
               <CalendarRange className="w-4 h-4 text-blue-600" />
-              <span>Last 100 market days</span>
+              <span>Last {lastxddays} market days</span>
             </div>
             {latest ? (
               <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
