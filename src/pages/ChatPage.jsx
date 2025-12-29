@@ -692,8 +692,6 @@ const ChatPage = () => {
             const endpoint = resolveEndpoint();
             const { data } = await api.post(endpoint, { userQuery: inputMessage });
             setShowLoader(false);
-            // const { data } = await api.post('http://localhost:5000/agenttest', { userQuery: inputMessage });
-            // setShowLoader(false);
             // Normalize possible response shapes
             let fullText = '';
             if (typeof data === 'string') {
