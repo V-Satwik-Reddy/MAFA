@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import api from "./api/axios";
 import { useAuth } from "./context/AuthContext";
 import LoginPage from './pages/LoginPage';
@@ -29,6 +29,17 @@ function App() {
   const { setAccessToken, setUser, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const didRefresh = useRef(false);
+  const basename = useMemo(() => {
+    if (!process.env.PUBLIC_URL) return "/";
+
+    try {
+      const url = new URL(process.env.PUBLIC_URL);
+      const pathname = url.pathname.replace(/\/$/, "");
+      return pathname || "/";
+    } catch {
+      return process.env.PUBLIC_URL;
+    }
+  }, []);
 
   useEffect(() => {
     if (didRefresh.current) return;
@@ -51,7 +62,7 @@ function App() {
   if (loading) return null; // or spinner
 
   return (
-    <Router>
+    <Router basename={basename}>
       <Routes>
         <Route path="/" element={<PublicRoute><WelcomePage /></PublicRoute>} />
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
