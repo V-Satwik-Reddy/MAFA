@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Lock, Mail, UserPlus, User, Phone, DollarSign } from 'lucide-react';
 import api from '../api/axios';
 import { useAuth } from "../context/AuthContext";
@@ -171,12 +171,12 @@ const SignupPage = () => {
                     <div className="mt-6 text-center">
                         <p className="text-sm text-gray-300">
                             Already have an account?{' '}
-                            <a
-                                href="/login"
+                            <Link
+                                to="/login"
                                 className="text-purple-400 hover:text-purple-300 font-medium"
                             >
                                 Log In
-                            </a>
+                            </Link>
                         </p>
                     </div>
                 </div>
