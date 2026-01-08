@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, Bot, User, Loader, Loader2, Zap, Compass, PanelLeftOpen, PanelLeft } from 'lucide-react';
+import { Send, Bot, User, Loader, Loader2, Zap, Compass, PanelLeftOpen, PanelLeft, ChartPie} from 'lucide-react';
 import {
     LineChart,
     Line,
@@ -654,6 +654,7 @@ const ChatPage = () => {
     const resolveEndpoint = () => {
         if (selectedAgent === 'execute') return '/ea-chat';
         if (selectedAgent === 'research') return '/mra-chat';
+        if (selectedAgent === 'portfolio') return '/pa-chat';
         return '/general-chat';
     };
 
@@ -765,7 +766,7 @@ const ChatPage = () => {
                                 }`}
                             >
                                 <div className="px-3 pb-3 flex flex-col gap-2 h-full">
-                                    {[{ key: 'execute', label: 'Trade Execution', icon: Zap }, { key: 'research', label: 'Market Research', icon: Compass }].map((agent) => {
+                                    {[{ key: 'execute', label: 'Trade Execution', icon: Zap }, { key: 'research', label: 'Market Research', icon: Compass }, {key: 'portfolio', label: 'Portfolio Manager', icon: ChartPie}].map((agent) => {
                                         const Icon = agent.icon;
                                         const active = selectedAgent === agent.key;
                                         return (
