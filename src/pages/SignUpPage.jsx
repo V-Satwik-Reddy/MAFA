@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, Mail, UserPlus, Eye, EyeOff, CheckCircle, XCircle, Info } from 'lucide-react';
 import api from '../api/axios';
-
+import { useAuth } from "../context/AuthContext";
 const SignupPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -24,6 +24,7 @@ const SignupPage = () => {
     const resendLimit = 3;
     const [cooldownTs, setCooldownTs] = useState(null);
     const [cooldownSecs, setCooldownSecs] = useState(0);
+    const { setAccessToken, setUser } = useAuth();
     const navigate = useNavigate();
 
     const isStrongPassword = (pw) => {
@@ -165,8 +166,13 @@ const SignupPage = () => {
             if(resp.status !== 200 && resp.status !== 201) {
                 throw new Error('Verification failed');
             }
-            // Redirect to profile creation page (not implemented yet)
-            navigate('/create-profile');
+            const { accessToken, user } = resp.data.data;
+
+            setAccessToken(accessToken);
+
+            setUser(user);
+            // Redirect to dedicated profile creation page
+            navigate('/create-page');
         } catch (error) {
             console.error('Verify error:', error);
             const status = error.response?.status;

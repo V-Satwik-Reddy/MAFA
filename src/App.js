@@ -13,9 +13,11 @@ import WelcomePage from './pages/WelcomePage';
 import TransactionsPage from './pages/TransactionsPage';
 import TradeExecutionPage from './pages/TradeExecutionPage';
 import GraphsPage from './pages/GraphsPage';
+import CreateProfilePage from './pages/CreateProfilePage';
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
+  console.log('ProtectedRoute user:', user,'children:', children);
   return children;
 }
 
@@ -48,10 +50,8 @@ function App() {
     api.post("/auth/refresh")
       .then(res => {
         setAccessToken(res.data.accessToken);
-        return api.get("/profile/me");
-      })
-      .then(res => {
-        setUser(res.data.data);
+        setUser(res.data.data.user);
+        console.log('App auto-login user:', res.data.data);
       })
       .catch(() => {
         logout();
@@ -67,7 +67,9 @@ function App() {
         <Route path="/" element={<PublicRoute><WelcomePage /></PublicRoute>} />
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
-        
+
+        <Route path="/create-page" element={<ProtectedRoute><CreateProfilePage /></ProtectedRoute>} />
+
         <Route path="/transactions" element={<ProtectedRoute><TransactionsPage /></ProtectedRoute>} />
         <Route path="/trade" element={<ProtectedRoute><TradeExecutionPage /></ProtectedRoute>} />
         <Route path="/graphs" element={<ProtectedRoute><GraphsPage /></ProtectedRoute>} />
