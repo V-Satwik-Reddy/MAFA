@@ -166,13 +166,13 @@ const SignupPage = () => {
             if(resp.status !== 200 && resp.status !== 201) {
                 throw new Error('Verification failed');
             }
-            const { accessToken, user } = resp.data.data;
-
+            var { accessToken, user } = resp.data.data;
+            user={...user, isProfileCreated: false};
             setAccessToken(accessToken);
 
             setUser(user);
             // Redirect to dedicated profile creation page
-            navigate('/create-page');
+            navigate('/create-profile');
         } catch (error) {
             console.error('Verify error:', error);
             const status = error.response?.status;
@@ -289,6 +289,11 @@ const SignupPage = () => {
                                         </div>
                                     )}
                                 </div>
+                                {passwordError && (
+                                <div className="text-red-400 text-sm">
+                                    {passwordError}
+                                </div>
+                            )}
                             </div>
 
                             {/* Confirm Password */}

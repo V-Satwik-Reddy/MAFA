@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Mail, Phone, Shield, Target, Save, Loader, RefreshCw, Calendar, MapPin, Building2, Landmark, IdCard, Globe, Briefcase, DollarSign } from 'lucide-react';
+import { User, Mail, Phone, Shield, Target, Save, Loader, Calendar, MapPin, Building2, Landmark, IdCard, Globe, Briefcase, DollarSign } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
 
 const ProfilePage = () => {
     const [loading, setLoading] = useState(true);
-    const [isUpdatingPrices, setIsUpdatingPrices] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const didFetchProfile = useRef(false);
 
@@ -31,7 +30,7 @@ const ProfilePage = () => {
         companyName: '',
         industry: '',
         employmentStatus: 'employed',
-        annualIncomeRange: '',
+        salaryRange: '',
     });
 
     useEffect(() => {
@@ -40,7 +39,39 @@ const ProfilePage = () => {
                 const response = await api.get('/profile/me');
                 if (response.status !== 200) throw new Error('Failed to fetch user profile');
                 const data = response.data.data || {};
+                // Normalize certain fields from backend to match frontend option values
+                const normalizeGender = (g) => {
+                    if (!g) return 'prefer_not_to_say';
+                    const low = String(g).toLowerCase();
+                    if (low.startsWith('m')) return 'male';
+                    if (low.startsWith('f')) return 'female';
+                    return 'prefer_not_to_say';
+                };
 
+                const normalizeEmployment = (s) => {
+                    if (!s) return 'employed';
+                    const low = String(s).toLowerCase();
+                    if (low.includes('student')) return 'student';
+                    if (low.includes('self')) return 'self_employed';
+                    if (low.includes('unemploy')) return 'unemployed';
+                    if (low.includes('retire')) return 'retired';
+                    return 'employed';
+                };
+
+                const normalizeSalary = (r) => {
+                    if (!r) return '';
+                    const val = String(r).toLowerCase();
+                    if (val.includes('below') || val.includes('below_50') || val.includes('below50') || (val.includes('50k') && val.includes('below'))) return 'Below_50k';
+                    if (val.includes('between') && val.includes('50') && val.includes('100')) return 'BETWEEN_50k_100k';
+                    if (val.includes('between') && val.includes('100') && val.includes('200')) return 'BETWEEN_100k_200k';
+                    if (val.includes('above') || val.includes('>') || val.includes('200')) return 'Above_200k';
+                    // fallback: try some common backend constants
+                    if (val === 'below_50k' || val === 'below50k' || val === 'below50') return 'Below_50k';
+                    if (val === 'below_50_k' || val === 'below_50') return 'Below_50k';
+                    if (val === 'below_50k') return 'Below_50k';
+                    return r;
+                };
+                console.log('Fetched profile data:', data);
                 setProfile({
                     username: data.username || '',
                     email: data.email || '',
@@ -51,7 +82,7 @@ const ProfilePage = () => {
                     firstName: data.firstName || '',
                     lastName: data.lastName || '',
                     dateOfBirth: data.dateOfBirth || '',
-                    gender: data.gender || 'prefer_not_to_say',
+                    gender: normalizeGender(data.gender),
                     addressLine1: data.addressLine1 || '',
                     addressLine2: data.addressLine2 || '',
                     city: data.city || '',
@@ -61,8 +92,8 @@ const ProfilePage = () => {
                     jobTitle: data.jobTitle || '',
                     companyName: data.companyName || '',
                     industry: data.industry || '',
-                    employmentStatus: data.employmentStatus || 'employed',
-                    annualIncomeRange: data.annualIncomeRange || '',
+                    employmentStatus: normalizeEmployment(data.employmentStatus),
+                    salaryRange: normalizeSalary(data.salaryRange) || '',
                 });
             } catch (err) {
                 console.error('Error fetching profile:', err);
@@ -76,12 +107,11 @@ const ProfilePage = () => {
             fetchUserProfile();
         }
     }, []);
-
     const handleSave = async () => {
         try {
             setIsEditing(false);
-            const response = await api.put('/profile/me', { ...profile });
-            if (response.status !== 200) throw new Error('Failed to update profile');
+            const response = await api.put('/profile/update', { ...profile });
+            if (response.status !== 200 && response.status!==201) throw new Error('Failed to update profile');
             alert('Profile updated successfully!');
         } catch (err) {
             console.error('Error updating profile:', err);
@@ -90,20 +120,6 @@ const ProfilePage = () => {
             } else {
                 alert('Failed to update profile. Please try again.');
             }
-        }
-    };
-
-    const handleUpdatePrices = async () => {
-        try {
-            setIsUpdatingPrices(true);
-            const response = await api.post('/updateprices');
-            if (response.status !== 200) throw new Error('Failed to update prices');
-            alert('Prices updated successfully.');
-        } catch (err) {
-            console.error('Error updating prices:', err);
-            alert('Failed to update prices. Please try again.');
-        } finally {
-            setIsUpdatingPrices(false);
         }
     };
 
@@ -139,14 +155,6 @@ const ProfilePage = () => {
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-bold text-gray-900">Personal Information</h2>
                             <div className="flex items-center gap-3">
-                                <button
-                                    onClick={handleUpdatePrices}
-                                    disabled={isUpdatingPrices}
-                                    className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 disabled:opacity-60 flex items-center gap-2"
-                                >
-                                    <RefreshCw className="w-4 h-4" />
-                                    {isUpdatingPrices ? 'Updating...' : 'Update Prices'}
-                                </button>
                                 {!isEditing ? (
                                     <button
                                         onClick={() => setIsEditing(true)}
@@ -175,8 +183,7 @@ const ProfilePage = () => {
                                 <input
                                     type="text"
                                     value={profile.username}
-                                    onChange={(e) => setProfile({ ...profile, username: e.target.value })}
-                                    disabled={!isEditing}
+                                    disabled
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                                 />
                             </div>
@@ -398,16 +405,16 @@ const ProfilePage = () => {
                                 <div className="relative">
                                     <DollarSign className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                                     <select
-                                        value={profile.annualIncomeRange}
-                                        onChange={(e) => setProfile({ ...profile, annualIncomeRange: e.target.value })}
+                                        value={profile.salaryRange}
+                                        onChange={(e) => setProfile({ ...profile, salaryRange: e.target.value })}
                                         disabled={!isEditing}
                                         className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                                     >
                                         <option value="">Select range</option>
-                                        <option value="<50k">Below $50k</option>
-                                        <option value="50k-100k">$50k–$100k</option>
-                                        <option value="100k-250k">$100k–$250k</option>
-                                        <option value=">250k">Above $250k</option>
+                                        <option value="Below_50k">Below $50k</option>
+                                        <option value="BETWEEN_50k_100k">$50k–$100k</option>
+                                        <option value="BETWEEN_100k_200k">$100k–$200k</option>
+                                        <option value="Above_200k">Above $200k</option>
                                     </select>
                                 </div>
                             </div>

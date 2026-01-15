@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Calendar, MapPin, Building2, Landmark, IdCard, Globe, Briefcase, CheckCircle, XCircle, AlertCircle, Loader, Save, DollarSign } from 'lucide-react';
+import { User, Phone, Calendar, MapPin, Building2, Landmark, IdCard, Globe, Briefcase, CheckCircle, XCircle, AlertCircle, Loader, Save, DollarSign } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
 
@@ -24,7 +24,7 @@ const CreateProfilePage = () => {
     companyName: '',
     industry: '',
     employmentStatus: 'employed',
-    annualIncomeRange: '',
+    salaryRange: '',
     phone: '',
   });
   const [formError, setFormError] = useState('');
@@ -54,13 +54,9 @@ const CreateProfilePage = () => {
     setUsernameStatus('checking');
     debounceRef.current = setTimeout(async () => {
       try {
-        const resp = await api.get('/profile/check-username', { params: { name } });
+        const resp = await api.get('/profile/check-username', { params: { username: name } });
         const available = (
-          resp?.data?.data?.available ??
-          resp?.data?.available ??
-          resp?.data?.isUnique ??
-          resp?.data?.unique ??
-          false
+          resp.data.message === 'Username is available'|| resp.data.data === true
         );
         if (available) {
           setUsernameStatus('available');
@@ -74,7 +70,7 @@ const CreateProfilePage = () => {
         setUsernameStatus('unavailable');
         setUsernameMessage('Unable to verify username right now');
       }
-    }, 1000);
+    }, 500);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -94,7 +90,7 @@ const CreateProfilePage = () => {
       setFormError('Please choose an available username.');
       return;
     }
-    const required = ['firstName','lastName','dateOfBirth','gender','addressLine1','city','postalCode','state','country','jobTitle','companyName','industry','annualIncomeRange'];
+    const required = ['firstName','lastName','dateOfBirth','gender','addressLine1','city','postalCode','state','country','jobTitle','companyName','industry','salaryRange'];
     const missing = required.filter(f => !String(createData[f] || '').trim());
     if (missing.length) {
       setFormError('Please fill in all required fields.');
@@ -103,7 +99,8 @@ const CreateProfilePage = () => {
 
     setSubmitting(true);
     try {
-      const resp = await api.post('/profile/userprofile', createData);
+      // console.log(createData);
+      const resp = await api.post('/profile/create', createData);
       if (resp.status !== 200 && resp.status !== 201) throw new Error('Failed to create profile');
       alert('Profile created successfully!');
       // TODO: Navigate to preferences form later
@@ -369,8 +366,8 @@ const CreateProfilePage = () => {
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                     <select
-                      value={createData.annualIncomeRange}
-                      onChange={(e)=>setCreateData({...createData, annualIncomeRange: e.target.value})}
+                      value={createData.salaryRange}
+                      onChange={(e)=>setCreateData({...createData, salaryRange: e.target.value})}
                       className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                       required
                     >
