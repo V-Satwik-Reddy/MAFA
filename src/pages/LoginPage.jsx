@@ -14,6 +14,7 @@ const LoginPage = () => {
 
         try {
             const response = await api.post("/auth/login", {email,password});
+            var { accessToken, user } = response.data.data;
             user={...user, isProfileCreated: true};
             setAccessToken(accessToken);
 

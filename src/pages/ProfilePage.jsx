@@ -71,7 +71,6 @@ const ProfilePage = () => {
                     if (val === 'below_50k') return 'Below_50k';
                     return r;
                 };
-                console.log('Fetched profile data:', data);
                 setProfile({
                     username: data.username || '',
                     email: data.email || '',

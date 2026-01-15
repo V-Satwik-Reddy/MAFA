@@ -6,6 +6,19 @@ import api from '../api/axios';
 
 const USERNAME_REGEX = /^[A-Za-z0-9_]+$/;
 
+const SECTORS = [
+  'Technology',
+  'Healthcare',
+  'Finance',
+  'Energy (Oil & Gas)',
+  'Aerospace',
+  'Mining',
+  'Electronics',
+  'Real Estate',
+  'Consumer Goods',
+  'Utilities',
+];
+const MAX_SECTORS = 4;
 const CreateProfilePage = () => {
   const navigate = useNavigate();
   const [createData, setCreateData] = useState({
@@ -29,6 +42,18 @@ const CreateProfilePage = () => {
   });
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const [preferences, setPreferences] = useState({
+    sectors: [],
+    riskLevel: 'moderate',
+    preferredAsset: 'stocks', // only stocks selectable for now
+    investmentGoal: 'short',
+  });
+  const [profileCreated, setProfileCreated] = useState(false);
+  const [prefSubmitting, setPrefSubmitting] = useState(false);
+  const dropdownRef = useRef(null);
+  const [showSectorsDropdown, setShowSectorsDropdown] = useState(false);
+  const [preferencesSaved, setPreferencesSaved] = useState(false);
 
   const [usernameStatus, setUsernameStatus] = useState('idle'); // idle | invalid | checking | available | unavailable
   const [usernameMessage, setUsernameMessage] = useState('');
@@ -102,9 +127,9 @@ const CreateProfilePage = () => {
       // console.log(createData);
       const resp = await api.post('/profile/create', createData);
       if (resp.status !== 200 && resp.status !== 201) throw new Error('Failed to create profile');
-      alert('Profile created successfully!');
-      // TODO: Navigate to preferences form later
-      navigate('/profile');
+      // mark profile created and show preferences form
+      setProfileCreated(true);
+      setFormError('');
     } catch (err) {
       console.error('Create profile error:', err);
       setFormError(err?.response?.data?.message || 'Failed to create profile. Please try again.');
@@ -113,6 +138,63 @@ const CreateProfilePage = () => {
     }
   };
 
+  const handlePreferencesSubmit = async (e) => {
+    e.preventDefault();
+    setFormError('');
+    if (!preferences.sectors.length) {
+      setFormError('Please select at least one sector.');
+      return;
+    }
+    setPrefSubmitting(true);
+    try {
+      console.log('Submitting preferences:', preferences);
+      const resp = await api.post('/profile/create-preferences', preferences);
+      if (resp.status !== 200 && resp.status !== 201) throw new Error('Failed to save preferences');
+      setPreferencesSaved(true);
+      setShowSectorsDropdown(false);
+      alert('Preferences saved!');
+      navigate('/profile');
+    } catch (err) {
+      console.error('Preferences save error:', err);
+      setFormError(err?.response?.data?.message || 'Failed to save preferences. Please try again.');
+    } finally {
+      setPrefSubmitting(false);
+    }
+  };
+
+  const toggleSector = (sector) => {
+    setPreferences(prev => {
+      const exists = prev.sectors.includes(sector);
+      if (exists) return { ...prev, sectors: prev.sectors.filter(s => s !== sector) };
+      if (prev.sectors.length >= MAX_SECTORS) return prev; // ignore additional
+      const newSectors = [...prev.sectors, sector];
+      if (newSectors.length >= MAX_SECTORS) setShowSectorsDropdown(false);
+      return { ...prev, sectors: newSectors };
+    });
+  };
+
+  const setRisk = (level) => setPreferences(prev => ({ ...prev, riskLevel: level }));
+  const setAsset = (asset) => setPreferences(prev => ({ ...prev, preferredAsset: asset }));
+  const setGoal = (goal) => setPreferences(prev => ({ ...prev, investmentGoal: goal }));
+  useEffect(() => {
+    function handleDocClick(e) {
+      if (!dropdownRef.current) return;
+      if (!dropdownRef.current.contains(e.target)) {
+        setShowSectorsDropdown(false);
+      }
+    }
+    function handleKey(e) {
+      if (e.key === 'Escape') setShowSectorsDropdown(false);
+    }
+    document.addEventListener('mousedown', handleDocClick);
+    document.addEventListener('touchstart', handleDocClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleDocClick);
+      document.removeEventListener('touchstart', handleDocClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, []);
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -123,7 +205,8 @@ const CreateProfilePage = () => {
             <p className="text-white/80 text-sm mt-1">Tell us a bit about you to personalize your experience.</p>
           </div>
 
-          <form onSubmit={handleCreateSubmit} className="p-6 space-y-6">
+          {!profileCreated && (
+            <form onSubmit={handleCreateSubmit} className="p-6 space-y-6">
             {formError && (
               <div className="flex items-center text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-3">
                 <AlertCircle className="w-4 h-4 mr-2" />
@@ -319,6 +402,8 @@ const CreateProfilePage = () => {
                     />
                   </div>
                 </div>
+
+                  {/* preferences moved below; shown after profile creation */}
                 <div>
                   <label className="block text-sm text-gray-700 mb-1">Company Name</label>
                   <div className="relative">
@@ -392,7 +477,105 @@ const CreateProfilePage = () => {
                 {submitting ? (<><Loader className="w-4 h-4 animate-spin" /> Creating...</>) : (<><Save className="w-4 h-4" /> Create Profile</>)}
               </button>
             </div>
-          </form>
+            </form>
+          )}
+          {profileCreated && !preferencesSaved && (
+            <div className="p-6 border-t">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Set Your Preferences</h2>
+              <form onSubmit={handlePreferencesSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">Interested Sectors (up to {MAX_SECTORS})</label>
+                  <div className="flex items-start gap-3">
+                      <div className="relative" ref={dropdownRef}>
+                        <button type="button" onClick={()=>setShowSectorsDropdown(s=>!s)} disabled={preferences.sectors.length >= MAX_SECTORS} className="px-3 py-2 border rounded-lg">
+                          Select sector
+                        </button>
+                        {showSectorsDropdown && (
+                          <div className="absolute z-20 mt-2 w-56 bg-white border rounded shadow-lg max-h-48 overflow-auto">
+                            {SECTORS.filter(s=>!preferences.sectors.includes(s)).map(s => (
+                              <button key={s} type="button" onClick={()=>toggleSector(s)} className="w-full text-left px-3 py-2 hover:bg-gray-100">{s}</button>
+                            ))}
+                            {SECTORS.filter(s=>!preferences.sectors.includes(s)).length===0 && (
+                              <div className="px-3 py-2 text-sm text-gray-500">No more sectors</div>
+                            )}
+                            <div className="p-2 border-t">
+                              <button type="button" onClick={()=>setShowSectorsDropdown(false)} className="text-sm text-gray-600">Done</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {preferences.sectors.map(s => (
+                          <div key={s} className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full border">
+                            <span className="text-sm">{s}</span>
+                            <button type="button" onClick={()=>toggleSector(s)} className="text-gray-600 hover:text-gray-800">×</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  {preferences.sectors.length >= MAX_SECTORS && (
+                    <p className="mt-1 text-xs text-gray-600">Maximum of {MAX_SECTORS} sectors selected.</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">Risk Profile</label>
+                  <div className="flex gap-3">
+                    <label className="p-3 border rounded-lg">
+                      <input type="radio" name="risk2" value="low" checked={preferences.riskLevel==='low'} onChange={()=>setRisk('low')} className="mr-2" />
+                      <span className="font-medium">Low / Conservative</span>
+                    </label>
+                    <label className="p-3 border rounded-lg">
+                      <input type="radio" name="risk2" value="moderate" checked={preferences.riskLevel==='moderate'} onChange={()=>setRisk('moderate')} className="mr-2" />
+                      <span className="font-medium">Moderate</span>
+                    </label>
+                    <label className="p-3 border rounded-lg">
+                      <input type="radio" name="risk2" value="high" checked={preferences.riskLevel==='high'} onChange={()=>setRisk('high')} className="mr-2" />
+                      <span className="font-medium">High / Aggressive</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">Preferred Asset Types</label>
+                  <div className="flex gap-3">
+                    <button type="button" onClick={()=>setAsset('stocks')} className={`px-4 py-2 rounded-lg border ${preferences.preferredAsset==='stocks' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700'}`}>Stocks (Equities)</button>
+                    <button type="button" disabled title="In development" className="px-4 py-2 rounded-lg border bg-gray-50 text-gray-400 cursor-not-allowed">Crypto (coming soon)</button>
+                    <button type="button" disabled title="In development" className="px-4 py-2 rounded-lg border bg-gray-50 text-gray-400 cursor-not-allowed">Commodities (coming soon)</button>
+                    <button type="button" disabled title="In development" className="px-4 py-2 rounded-lg border bg-gray-50 text-gray-400 cursor-not-allowed">Mutual Funds / ETFs (coming soon)</button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">Investment Goals</label>
+                  <div className="flex gap-2 flex-wrap">
+                    <label className="p-2 border rounded-lg">
+                      <input type="radio" name="goal2" value="super_short" checked={preferences.investmentGoal==='super_short'} onChange={()=>setGoal('super_short')} className="mr-2" />
+                      <span className="text-sm">Super short &lt;2 yrs</span>
+                    </label>
+                    <label className="p-2 border rounded-lg">
+                      <input type="radio" name="goal2" value="short" checked={preferences.investmentGoal==='short'} onChange={()=>setGoal('short')} className="mr-2" />
+                      <span className="text-sm">Short &lt;5 yrs</span>
+                    </label>
+                    <label className="p-2 border rounded-lg">
+                      <input type="radio" name="goal2" value="medium" checked={preferences.investmentGoal==='medium'} onChange={()=>setGoal('medium')} className="mr-2" />
+                      <span className="text-sm">Medium 5–10 yrs</span>
+                    </label>
+                    <label className="p-2 border rounded-lg">
+                      <input type="radio" name="goal2" value="long" checked={preferences.investmentGoal==='long'} onChange={()=>setGoal('long')} className="mr-2" />
+                      <span className="text-sm">Long &gt;20 yrs</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button type="submit" disabled={prefSubmitting} className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-60">
+                    {prefSubmitting ? 'Saving...' : 'Save Preferences'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
         </div>
       </div>
     </div>
