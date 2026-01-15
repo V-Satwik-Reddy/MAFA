@@ -17,13 +17,17 @@ import CreateProfilePage from './pages/CreateProfilePage';
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  console.log('ProtectedRoute user:', user,'children:', children);
   return children;
 }
 
 function PublicRoute({ children }) {
   const { user } = useAuth();
-  if (user) return <Navigate to="/home" replace />;
+    if (user){ 
+      if(user.isProfileCreated===false){
+        return <Navigate to="/create-profile" replace />;
+      }
+      return <Navigate to="/home" replace />;
+    }
   return children;
 }
 
@@ -50,11 +54,13 @@ function App() {
     api.post("/auth/refresh")
       .then(res => {
         setAccessToken(res.data.accessToken);
-        setUser(res.data.data.user);
-        console.log('App auto-login user:', res.data.data);
+        setUser(res.data.user);
       })
-      .catch(() => {
-        logout();
+      .catch((res) => {
+        console.log('App auto-login failed',res);
+        setTimeout(() =>
+        logout()
+        , 3000);
       })
       .finally(() => setLoading(false));
   }, [setAccessToken, setUser, logout]);
@@ -68,14 +74,14 @@ function App() {
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
 
-        <Route path="/create-page" element={<ProtectedRoute><CreateProfilePage /></ProtectedRoute>} />
+        <Route path="/create-profile" element={<ProtectedRoute><CreateProfilePage /></ProtectedRoute>} />
 
         <Route path="/transactions" element={<ProtectedRoute><TransactionsPage /></ProtectedRoute>} />
         <Route path="/trade" element={<ProtectedRoute><TradeExecutionPage /></ProtectedRoute>} />
         <Route path="/graphs" element={<ProtectedRoute><GraphsPage /></ProtectedRoute>} />
-        <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+        <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
