@@ -1,3 +1,5 @@
+//get sectors and companies from db in future iterations
+
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Phone, Calendar, MapPin, Building2, Landmark, IdCard, Globe, Briefcase, CheckCircle, XCircle, AlertCircle, Loader, Save, DollarSign } from 'lucide-react';
@@ -17,6 +19,18 @@ const SECTORS = [
   'Real Estate',
   'Consumer Goods',
   'Utilities',
+];
+const COMPANIES = [
+  'Apple',
+  'Microsoft',
+  'Google',
+  'Amazon',
+  'Tesla',
+  'Meta Platforms',
+  'NVIDIA',
+  'Samsung',
+  'JPMorgan Chase',
+  'ExxonMobil',
 ];
 const MAX_SECTORS = 4;
 const CreateProfilePage = () => {
@@ -47,12 +61,15 @@ const CreateProfilePage = () => {
     sectors: [],
     riskLevel: 'moderate',
     preferredAsset: 'stocks', // only stocks selectable for now
-    investmentGoal: 'short',
+    investmentGoals: 'short',
+    companies: [],
   });
   const [profileCreated, setProfileCreated] = useState(false);
   const [prefSubmitting, setPrefSubmitting] = useState(false);
   const dropdownRef = useRef(null);
   const [showSectorsDropdown, setShowSectorsDropdown] = useState(false);
+  const companiesDropdownRef = useRef(null);
+  const [showCompaniesDropdown, setShowCompaniesDropdown] = useState(false);
   const [preferencesSaved, setPreferencesSaved] = useState(false);
 
   const [usernameStatus, setUsernameStatus] = useState('idle'); // idle | invalid | checking | available | unavailable
@@ -173,14 +190,28 @@ const CreateProfilePage = () => {
     });
   };
 
+  const toggleCompany = (company) => {
+    setPreferences(prev => {
+      const exists = prev.companies.includes(company);
+      if (exists) return { ...prev, companies: prev.companies.filter(c => c !== company) };
+      if (prev.companies.length >= MAX_SECTORS) return prev;
+      const newCompanies = [...prev.companies, company];
+      if (newCompanies.length >= MAX_SECTORS) setShowCompaniesDropdown(false);
+      return { ...prev, companies: newCompanies };
+    });
+  };
+
   const setRisk = (level) => setPreferences(prev => ({ ...prev, riskLevel: level }));
   const setAsset = (asset) => setPreferences(prev => ({ ...prev, preferredAsset: asset }));
-  const setGoal = (goal) => setPreferences(prev => ({ ...prev, investmentGoal: goal }));
+  const setGoal = (goal) => setPreferences(prev => ({ ...prev, investmentGoals: goal }));
   useEffect(() => {
     function handleDocClick(e) {
-      if (!dropdownRef.current) return;
-      if (!dropdownRef.current.contains(e.target)) {
+      // close either dropdown if click occurs outside
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setShowSectorsDropdown(false);
+      }
+      if (companiesDropdownRef.current && !companiesDropdownRef.current.contains(e.target)) {
+        setShowCompaniesDropdown(false);
       }
     }
     function handleKey(e) {
@@ -218,6 +249,7 @@ const CreateProfilePage = () => {
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Personal Details</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
                 <div>
                   <label className="block text-sm text-gray-700 mb-1">First Name</label>
                   <div className="relative">
@@ -519,6 +551,41 @@ const CreateProfilePage = () => {
                 </div>
 
                 <div>
+                  <label className="block text-sm text-gray-700 mb-2">Interested Companies (up to {MAX_SECTORS})</label>
+                  <div className="flex items-start gap-3">
+                      <div className="relative" ref={companiesDropdownRef}>
+                        <button type="button" onClick={()=>setShowCompaniesDropdown(s=>!s)} disabled={preferences.companies.length >= MAX_SECTORS} className="px-3 py-2 border rounded-lg">
+                          Select company
+                        </button>
+                        {showCompaniesDropdown && (
+                          <div className="absolute z-20 mt-2 w-56 bg-white border rounded shadow-lg max-h-48 overflow-auto">
+                            {COMPANIES.filter(c=>!preferences.companies.includes(c)).map(c => (
+                              <button key={c} type="button" onClick={()=>toggleCompany(c)} className="w-full text-left px-3 py-2 hover:bg-gray-100">{c}</button>
+                            ))}
+                            {COMPANIES.filter(c=>!preferences.companies.includes(c)).length===0 && (
+                              <div className="px-3 py-2 text-sm text-gray-500">No more companies</div>
+                            )}
+                            <div className="p-2 border-t">
+                              <button type="button" onClick={()=>setShowCompaniesDropdown(false)} className="text-sm text-gray-600">Done</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {preferences.companies.map(c => (
+                          <div key={c} className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full border">
+                            <span className="text-sm">{c}</span>
+                            <button type="button" onClick={()=>toggleCompany(c)} className="text-gray-600 hover:text-gray-800">×</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  {preferences.companies.length >= MAX_SECTORS && (
+                    <p className="mt-1 text-xs text-gray-600">Maximum of {MAX_SECTORS} companies selected.</p>
+                  )}
+                </div>
+
+                <div>
                   <label className="block text-sm text-gray-700 mb-2">Risk Profile</label>
                   <div className="flex gap-3">
                     <label className="p-3 border rounded-lg">
@@ -550,19 +617,19 @@ const CreateProfilePage = () => {
                   <label className="block text-sm text-gray-700 mb-2">Investment Goals</label>
                   <div className="flex gap-2 flex-wrap">
                     <label className="p-2 border rounded-lg">
-                      <input type="radio" name="goal2" value="super_short" checked={preferences.investmentGoal==='super_short'} onChange={()=>setGoal('super_short')} className="mr-2" />
+                      <input type="radio" name="goal2" value="super_short" checked={preferences.investmentGoals==='super_short'} onChange={()=>setGoal('super_short')} className="mr-2" />
                       <span className="text-sm">Super short &lt;2 yrs</span>
                     </label>
                     <label className="p-2 border rounded-lg">
-                      <input type="radio" name="goal2" value="short" checked={preferences.investmentGoal==='short'} onChange={()=>setGoal('short')} className="mr-2" />
+                      <input type="radio" name="goal2" value="short" checked={preferences.investmentGoals==='short'} onChange={()=>setGoal('short')} className="mr-2" />
                       <span className="text-sm">Short &lt;5 yrs</span>
                     </label>
                     <label className="p-2 border rounded-lg">
-                      <input type="radio" name="goal2" value="medium" checked={preferences.investmentGoal==='medium'} onChange={()=>setGoal('medium')} className="mr-2" />
+                      <input type="radio" name="goal2" value="medium" checked={preferences.investmentGoals==='medium'} onChange={()=>setGoal('medium')} className="mr-2" />
                       <span className="text-sm">Medium 5–10 yrs</span>
                     </label>
                     <label className="p-2 border rounded-lg">
-                      <input type="radio" name="goal2" value="long" checked={preferences.investmentGoal==='long'} onChange={()=>setGoal('long')} className="mr-2" />
+                      <input type="radio" name="goal2" value="long" checked={preferences.investmentGoals==='long'} onChange={()=>setGoal('long')} className="mr-2" />
                       <span className="text-sm">Long &gt;20 yrs</span>
                     </label>
                   </div>

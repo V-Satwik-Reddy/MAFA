@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Mail, Phone, Shield, Target, Save, Loader, Calendar, MapPin, Building2, Landmark, IdCard, Globe, Briefcase, DollarSign } from 'lucide-react';
+import { User, Mail, Phone, Target, Save, Loader, Calendar, MapPin, Building2, Landmark, IdCard, Globe, Briefcase, DollarSign } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
 
@@ -13,9 +13,7 @@ const ProfilePage = () => {
         username: '',
         email: '',
         phone: '',
-        riskProfile: 'moderate',
         balance: '',
-        preferredAssets: ['stocks'],
         firstName: '',
         lastName: '',
         dateOfBirth: '',
@@ -32,6 +30,27 @@ const ProfilePage = () => {
         employmentStatus: 'employed',
         salaryRange: '',
     });
+
+    // Preference constants and state (mirrors CreateProfilePage)
+    const SECTORS = [
+        'Technology', 'Healthcare', 'Finance', 'Energy (Oil & Gas)', 'Aerospace', 'Mining', 'Electronics', 'Real Estate', 'Consumer Goods', 'Utilities'
+    ];
+    const COMPANIES = ['Apple', 'Microsoft', 'Google', 'Amazon', 'Tesla', 'Meta Platforms', 'NVIDIA', 'Samsung', 'JPMorgan Chase', 'ExxonMobil'];
+    const MAX_SECTORS = 4;
+
+    const [preferences, setPreferences] = useState({
+        sectors: [],
+        companies: [],
+        preferredAsset: 'stocks',
+        investmentGoal: 'short',
+    });
+    const [prefLoading, setPrefLoading] = useState(true);
+    const [isEditingPrefs, setIsEditingPrefs] = useState(false);
+    const [prefSubmitting, setPrefSubmitting] = useState(false);
+    const prefDropdownRef = useRef(null);
+    const companiesDropdownRef = useRef(null);
+    const [showSectorsDropdown, setShowSectorsDropdown] = useState(false);
+    const [showCompaniesDropdown, setShowCompaniesDropdown] = useState(false);
 
     useEffect(() => {
         const fetchUserProfile = async () => {
@@ -106,11 +125,68 @@ const ProfilePage = () => {
             fetchUserProfile();
         }
     }, []);
+
+    // Fetch user preferences separately
+    useEffect(() => {
+        const fetchPreferences = async () => {
+            try {
+                const res = await api.get('/profile/preferences');
+                if (res.status !== 200) throw new Error('Failed to fetch preferences');
+                const data = res.data?.data || {};
+                setPreferences(prev => ({
+                    sectors: Array.isArray(data.sectors) ? data.sectors : (data.sectors ? [data.sectors] : []),
+                    companies: Array.isArray(data.companies) ? data.companies : (data.companies ? [data.companies] : []),
+                    preferredAsset: data.preferredAsset || prev.preferredAsset || 'stocks',
+                    investmentGoal: data.investmentGoal || prev.investmentGoal || 'short',
+                }));
+            } catch (err) {
+                console.error('Error fetching preferences:', err);
+            } finally {
+                setPrefLoading(false);
+            }
+        };
+        fetchPreferences();
+    }, []);
+
+    // Preference toggles and handlers
+    const toggleSector = (s) => setPreferences(prev => {
+        const exists = prev.sectors.includes(s);
+        if (exists) return { ...prev, sectors: prev.sectors.filter(x => x !== s) };
+        if (prev.sectors.length >= MAX_SECTORS) return prev;
+        const newS = [...prev.sectors, s];
+        if (newS.length >= MAX_SECTORS) setShowSectorsDropdown(false);
+        return { ...prev, sectors: newS };
+    });
+    const toggleCompany = (c) => setPreferences(prev => {
+        const exists = prev.companies.includes(c);
+        if (exists) return { ...prev, companies: prev.companies.filter(x => x !== c) };
+        if (prev.companies.length >= MAX_SECTORS) return prev;
+        const newC = [...prev.companies, c];
+        if (newC.length >= MAX_SECTORS) setShowCompaniesDropdown(false);
+        return { ...prev, companies: newC };
+    });
+    const setPreferredAsset = (a) => setPreferences(prev => ({ ...prev, preferredAsset: a }));
+    const setInvestmentGoal = (g) => setPreferences(prev => ({ ...prev, investmentGoal: g }));
+
+    const handlePreferencesSave = async () => {
+        setPrefSubmitting(true);
+        try {
+            const resp = await api.put('/profile/update-preferences', preferences);
+            if (resp.status !== 200 && resp.status !== 201) throw new Error('Failed to update preferences');
+            alert('Preferences updated');
+            setIsEditingPrefs(false);
+        } catch (err) {
+            console.error('Preferences update error:', err);
+            alert(err?.response?.data?.message || 'Failed to update preferences');
+        } finally {
+            setPrefSubmitting(false);
+        }
+    };
     const handleSave = async () => {
         try {
             setIsEditing(false);
             const response = await api.put('/profile/update', { ...profile });
-            if (response.status !== 200 && response.status!==201) throw new Error('Failed to update profile');
+            if (response.status !== 200 && response.status !== 201) throw new Error('Failed to update profile');
             alert('Profile updated successfully!');
         } catch (err) {
             console.error('Error updating profile:', err);
@@ -129,7 +205,7 @@ const ProfilePage = () => {
             </div>
         );
     }
-    
+
 
     // Existing profile view/edit
     return (
@@ -419,57 +495,133 @@ const ProfilePage = () => {
                             </div>
                         </div>
 
+                        {/* User Preferences (sectors, companies, preferred asset, investment goal) */}
                         <div className="border-t pt-6">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4">
-                                <Target className="w-5 h-5 inline mr-2" />
-                                Investment Preferences
-                            </h3>
-
-                            <div className="mb-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    <Shield className="w-4 h-4 inline mr-2" />
-                                    Risk Profile
-                                </label>
-                                <select
-                                    value={profile.riskProfile}
-                                    onChange={(e) => setProfile({ ...profile, riskProfile: e.target.value })}
-                                    disabled={!isEditing}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                >
-                                    <option value="conservative">Conservative - Low Risk</option>
-                                    <option value="moderate">Moderate - Balanced Risk</option>
-                                    <option value="aggressive">Aggressive - High Risk</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Preferred Asset Types
-                                </label>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    {['stocks', 'etf', 'crypto', 'commodities'].map((asset) => (
-                                        <label key={asset} className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={profile.preferredAssets.includes(asset)}
-                                                onChange={(e) => {
-                                                    if (e.target.checked) {
-                                                        setProfile({ ...profile, preferredAssets: [...profile.preferredAssets, asset] });
-                                                    } else {
-                                                        setProfile({
-                                                            ...profile,
-                                                            preferredAssets: profile.preferredAssets.filter(a => a !== asset),
-                                                        });
-                                                    }
-                                                }}
-                                                disabled={!isEditing}
-                                                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                                            />
-                                            <span className="text-sm text-gray-700 capitalize">{asset}</span>
-                                        </label>
-                                    )) }
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                                    <Target className="w-5 h-5 inline mr-2" />
+                                    Investment Preferences
+                                </h3>
+                                <div>
+                                    {!isEditingPrefs ? (
+                                        <button onClick={() => setIsEditingPrefs(true)} className="px-3 py-1 bg-blue-600 text-white rounded-lg">Edit Preferences</button>
+                                    ) : (
+                                        <button onClick={() => setIsEditingPrefs(false)} className="px-3 py-1 bg-gray-200 rounded-lg">Cancel</button>
+                                    )}
                                 </div>
                             </div>
+
+                            {prefLoading ? (
+                                <div className="text-sm text-gray-500">Loading preferences...</div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm text-gray-700 mb-2">Interested Sectors (up to {MAX_SECTORS})</label>
+                                        <div className="flex items-start gap-3">
+                                            <div className="relative" ref={prefDropdownRef}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowSectorsDropdown(s => !s)}
+                                                    disabled={!isEditingPrefs || preferences.sectors.length >= MAX_SECTORS}
+                                                    className="px-3 py-2 border rounded-lg"
+                                                >
+                                                    Select sector
+                                                </button>
+                                                {showSectorsDropdown && (
+                                                    <div className="absolute z-20 mt-2 w-56 bg-white border rounded shadow-lg max-h-48 overflow-auto">
+                                                        {SECTORS.filter(s => !preferences.sectors.includes(s)).map(s => (
+                                                            <button key={s} type="button" onClick={() => toggleSector(s)} className="w-full text-left px-3 py-2 hover:bg-gray-100">{s}</button>
+                                                        ))}
+                                                        {SECTORS.filter(s => !preferences.sectors.includes(s)).length === 0 && (
+                                                            <div className="px-3 py-2 text-sm text-gray-500">No more sectors</div>
+                                                        )}
+                                                        <div className="p-2 border-t">
+                                                            <button type="button" onClick={() => setShowSectorsDropdown(false)} className="text-sm text-gray-600">Done</button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {preferences.sectors.map(s => (
+                                                    <div key={s} className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full border">
+                                                        <span className="text-sm">{s}</span>
+                                                        <button type="button" onClick={() => toggleSector(s)} disabled={!isEditingPrefs} className="text-gray-600 hover:text-gray-800">×</button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {preferences.sectors.length >= MAX_SECTORS && (
+                                            <p className="mt-1 text-xs text-gray-600">Maximum of {MAX_SECTORS} sectors selected.</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm text-gray-700 mb-2">Interested Companies (up to {MAX_SECTORS})</label>
+                                        <div className="flex items-start gap-3">
+                                            <div className="relative" ref={companiesDropdownRef}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowCompaniesDropdown(s => !s)}
+                                                    disabled={!isEditingPrefs || preferences.companies.length >= MAX_SECTORS}
+                                                    className="px-3 py-2 border rounded-lg"
+                                                >
+                                                    Select company
+                                                </button>
+                                                {showCompaniesDropdown && (
+                                                    <div className="absolute z-20 mt-2 w-56 bg-white border rounded shadow-lg max-h-48 overflow-auto">
+                                                        {COMPANIES.filter(c => !preferences.companies.includes(c)).map(c => (
+                                                            <button key={c} type="button" onClick={() => toggleCompany(c)} className="w-full text-left px-3 py-2 hover:bg-gray-100">{c}</button>
+                                                        ))}
+                                                        {COMPANIES.filter(c => !preferences.companies.includes(c)).length === 0 && (
+                                                            <div className="px-3 py-2 text-sm text-gray-500">No more companies</div>
+                                                        )}
+                                                        <div className="p-2 border-t">
+                                                            <button type="button" onClick={() => setShowCompaniesDropdown(false)} className="text-sm text-gray-600">Done</button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {preferences.companies.map(c => (
+                                                    <div key={c} className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full border">
+                                                        <span className="text-sm">{c}</span>
+                                                        <button type="button" onClick={() => toggleCompany(c)} disabled={!isEditingPrefs} className="text-gray-600 hover:text-gray-800">×</button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {preferences.companies.length >= MAX_SECTORS && (
+                                            <p className="mt-1 text-xs text-gray-600">Maximum of {MAX_SECTORS} companies selected.</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm text-gray-700 mb-2">Preferred Asset</label>
+                                        <div className="flex gap-3">
+                                            <button type="button" onClick={() => setPreferredAsset('stocks')} disabled={!isEditingPrefs} className={`px-4 py-2 rounded-lg border ${preferences.preferredAsset === 'stocks' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700'}`}>Stocks</button>
+                                            <button type="button" onClick={() => setPreferredAsset('crypto')} disabled className="px-4 py-2 rounded-lg border bg-gray-50 text-gray-400 cursor-not-allowed">Crypto (soon)</button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm text-gray-700 mb-2">Investment Goal</label>
+                                        <div className="flex gap-2 flex-wrap">
+                                            {['super_short', 'short', 'medium', 'long'].map(g => (
+                                                <label key={g} className="p-2 border rounded-lg">
+                                                    <input type="radio" name="pref_goal" value={g} checked={preferences.investmentGoal === g} onChange={() => setInvestmentGoal(g)} disabled={!isEditingPrefs} className="mr-2" />
+                                                    <span className="text-sm">{g === 'super_short' ? 'Super short <2 yrs' : g === 'short' ? 'Short <5 yrs' : g === 'medium' ? 'Medium 5–10 yrs' : 'Long >20 yrs'}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2 flex justify-end">
+                                        <button onClick={handlePreferencesSave} disabled={!isEditingPrefs || prefSubmitting} className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-60">
+                                            {prefSubmitting ? 'Saving...' : 'Save Preferences'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
