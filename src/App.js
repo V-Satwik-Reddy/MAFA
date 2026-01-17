@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage';
 import ChatPage from './pages/ChatPage';
 import ProfilePage from './pages/ProfilePage';
 import SignupPage from './pages/SignUpPage';
+import AddBalancePage from './pages/AddBalancePage';
 import WelcomePage from './pages/WelcomePage';
 import TransactionsPage from './pages/TransactionsPage';
 import TradeExecutionPage from './pages/TradeExecutionPage';
@@ -84,6 +85,7 @@ function App() {
           <Route path="/create-profile" element={<CreateProfilePage />} />
           <Route path="/home" element={<HomePage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/profile/add-balance" element={<AddBalancePage />} />
           <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/trade" element={<TradeExecutionPage />} />
           <Route path="/graphs" element={<GraphsPage />} />

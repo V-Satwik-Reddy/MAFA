@@ -6,6 +6,7 @@ import api from '../api/axios';
 const ProfilePage = () => {
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
+    const [activeTab, setActiveTab] = useState('profile');
     const didFetchProfile = useRef(false);
 
     // Existing profile (view/edit mode)
@@ -207,423 +208,475 @@ const ProfilePage = () => {
     }
 
 
-    // Existing profile view/edit
+    // Split view: sidebar with Profile / Preferences
+
     return (
         <div className="min-h-screen bg-gray-50">
             <Navbar />
 
-            <div className="max-w-4xl mx-auto px-4 py-8">
-                <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-white p-3 rounded-full">
-                                <User className="w-12 h-12 text-blue-600" />
+            <div className="max-w-6xl mx-auto px-4 py-8">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {/* Sidebar */}
+                    <aside className="md:col-span-1">
+                        <div className="bg-white rounded-xl shadow-md p-4">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="bg-blue-100 p-3 rounded-full">
+                                    <User className="w-6 h-6 text-blue-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-semibold">{profile.username}</h3>
+                                    <p className="text-xs text-gray-500">Investor Profile</p>
+                                </div>
                             </div>
-                            <div>
-                                <h1 className="text-2xl font-bold text-white">{profile.username}</h1>
-                                <p className="text-blue-100">Investor Profile</p>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div className="p-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-gray-900">Personal Information</h2>
-                            <div className="flex items-center gap-3">
-                                {!isEditing ? (
-                                    <button
-                                        onClick={() => setIsEditing(true)}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                                    >
-                                        Edit Profile
-                                    </button>
+                            <nav className="space-y-2">
+                                <button
+                                    onClick={() => setActiveTab('profile')}
+                                    className={`w-full text-left px-3 py-2 rounded-lg ${activeTab === 'profile' ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}`}>
+                                    Profile
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('preferences')}
+                                    className={`w-full text-left px-3 py-2 rounded-lg ${activeTab === 'preferences' ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}`}>
+                                    Preferences
+                                </button>
+                            </nav>
+                        </div>
+                    </aside>
+
+                    {/* Main content */}
+                    <main className="md:col-span-3">
+                        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="bg-white p-3 rounded-full">
+                                        <User className="w-12 h-12 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-2xl font-bold text-white">{activeTab === 'profile' ? 'Profile' : 'Preferences'}</h1>
+                                        <p className="text-blue-100">Manage your {activeTab === 'profile' ? 'personal information' : 'investment preferences'}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-6">
+                                {activeTab === 'profile' ? (
+                                    <>
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h2 className="text-xl font-bold text-gray-900">Personal Information</h2>
+                                            <div className="flex items-center gap-3">
+                                                {!isEditing ? (
+                                                    <button
+                                                        onClick={() => setIsEditing(true)}
+                                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                                    >
+                                                        Edit Profile
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={handleSave}
+                                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+                                                    >
+                                                        <Save className="w-4 h-4" />
+                                                        Save Changes
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    <User className="w-4 h-4 inline mr-2" />
+                                                    Username
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={profile.username}
+                                                    disabled
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    <Mail className="w-4 h-4 inline mr-2" />
+                                                    Email Address
+                                                </label>
+                                                <input
+                                                    type="email"
+                                                    value={profile.email}
+                                                    disabled
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    <Phone className="w-4 h-4 inline mr-2" />
+                                                    Phone Number
+                                                </label>
+                                                <input
+                                                    type="tel"
+                                                    value={profile.phone}
+                                                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                                                    disabled={!isEditing}
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    <DollarSign className="w-4 h-4 inline mr-2" />
+                                                    Account balance ($)
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    value={profile.balance}
+                                                    onChange={(e) => setProfile({ ...profile, balance: e.target.value })}
+                                                    disabled={!isEditing}
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                                                <div className="relative">
+                                                    <IdCard className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                                                    <input
+                                                        type="text"
+                                                        value={profile.firstName}
+                                                        onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
+                                                        disabled={!isEditing}
+                                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                                                <div className="relative">
+                                                    <IdCard className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                                                    <input
+                                                        type="text"
+                                                        value={profile.lastName}
+                                                        onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
+                                                        disabled={!isEditing}
+                                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
+                                                <div className="relative">
+                                                    <Calendar className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                                                    <input
+                                                        type="date"
+                                                        value={profile.dateOfBirth}
+                                                        onChange={(e) => setProfile({ ...profile, dateOfBirth: e.target.value })}
+                                                        disabled={!isEditing}
+                                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+                                                <select
+                                                    value={profile.gender}
+                                                    onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
+                                                    disabled={!isEditing}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                >
+                                                    <option value="male">Male</option>
+                                                    <option value="female">Female</option>
+                                                    <option value="prefer_not_to_say">Prefer not to say</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="md:col-span-2">
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 1</label>
+                                                <div className="relative">
+                                                    <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                                                    <input
+                                                        type="text"
+                                                        value={profile.addressLine1}
+                                                        onChange={(e) => setProfile({ ...profile, addressLine1: e.target.value })}
+                                                        disabled={!isEditing}
+                                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="md:col-span-2">
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 2</label>
+                                                <input
+                                                    type="text"
+                                                    value={profile.addressLine2}
+                                                    onChange={(e) => setProfile({ ...profile, addressLine2: e.target.value })}
+                                                    disabled={!isEditing}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+                                                <input
+                                                    type="text"
+                                                    value={profile.city}
+                                                    onChange={(e) => setProfile({ ...profile, city: e.target.value })}
+                                                    disabled={!isEditing}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">State/Province</label>
+                                                <input
+                                                    type="text"
+                                                    value={profile.state}
+                                                    onChange={(e) => setProfile({ ...profile, state: e.target.value })}
+                                                    disabled={!isEditing}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
+                                                <input
+                                                    type="text"
+                                                    value={profile.postalCode}
+                                                    onChange={(e) => setProfile({ ...profile, postalCode: e.target.value })}
+                                                    disabled={!isEditing}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
+                                                <div className="relative">
+                                                    <Globe className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                                                    <input
+                                                        type="text"
+                                                        value={profile.country}
+                                                        onChange={(e) => setProfile({ ...profile, country: e.target.value })}
+                                                        disabled={!isEditing}
+                                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Job Title</label>
+                                                <div className="relative">
+                                                    <Briefcase className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                                                    <input
+                                                        type="text"
+                                                        value={profile.jobTitle}
+                                                        onChange={(e) => setProfile({ ...profile, jobTitle: e.target.value })}
+                                                        disabled={!isEditing}
+                                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
+                                                <div className="relative">
+                                                    <Building2 className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                                                    <input
+                                                        type="text"
+                                                        value={profile.companyName}
+                                                        onChange={(e) => setProfile({ ...profile, companyName: e.target.value })}
+                                                        disabled={!isEditing}
+                                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="md:col-span-2">
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Industry Background</label>
+                                                <div className="relative">
+                                                    <Landmark className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                                                    <input
+                                                        type="text"
+                                                        value={profile.industry}
+                                                        onChange={(e) => setProfile({ ...profile, industry: e.target.value })}
+                                                        disabled={!isEditing}
+                                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Employment Status</label>
+                                                <select
+                                                    value={profile.employmentStatus}
+                                                    onChange={(e) => setProfile({ ...profile, employmentStatus: e.target.value })}
+                                                    disabled={!isEditing}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                >
+                                                    <option value="employed">Employed</option>
+                                                    <option value="self_employed">Self-employed</option>
+                                                    <option value="student">Student</option>
+                                                    <option value="unemployed">Unemployed</option>
+                                                    <option value="retired">Retired</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Annual Income Range</label>
+                                                <div className="relative">
+                                                    <DollarSign className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                                                    <select
+                                                        value={profile.salaryRange}
+                                                        onChange={(e) => setProfile({ ...profile, salaryRange: e.target.value })}
+                                                        disabled={!isEditing}
+                                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                                                    >
+                                                        <option value="">Select range</option>
+                                                        <option value="Below_50k">Below $50k</option>
+                                                        <option value="BETWEEN_50k_100k">$50k–$100k</option>
+                                                        <option value="BETWEEN_100k_200k">$100k–$200k</option>
+                                                        <option value="Above_200k">Above $200k</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
                                 ) : (
-                                    <button
-                                        onClick={handleSave}
-                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-                                    >
-                                        <Save className="w-4 h-4" />
-                                        Save Changes
-                                    </button>
+                                    <>
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="text-lg font-bold text-gray-900 mb-4">
+                                                <Target className="w-5 h-5 inline mr-2" />
+                                                Investment Preferences
+                                            </h3>
+                                            <div>
+                                                {!isEditingPrefs ? (
+                                                    <button onClick={() => setIsEditingPrefs(true)} className="px-3 py-1 bg-blue-600 text-white rounded-lg">Edit Preferences</button>
+                                                ) : (
+                                                    <button onClick={() => setIsEditingPrefs(false)} className="px-3 py-1 bg-gray-200 rounded-lg">Cancel</button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {prefLoading ? (
+                                            <div className="text-sm text-gray-500">Loading preferences...</div>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-sm text-gray-700 mb-2">Interested Sectors (up to {MAX_SECTORS})</label>
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="relative" ref={prefDropdownRef}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowSectorsDropdown(s => !s)}
+                                                                disabled={!isEditingPrefs || preferences.sectors.length >= MAX_SECTORS}
+                                                                className="px-3 py-2 border rounded-lg"
+                                                            >
+                                                                Select sector
+                                                            </button>
+                                                            {showSectorsDropdown && (
+                                                                <div className="absolute z-20 mt-2 w-56 bg-white border rounded shadow-lg max-h-48 overflow-auto">
+                                                                    {SECTORS.filter(s => !preferences.sectors.includes(s)).map(s => (
+                                                                        <button key={s} type="button" onClick={() => toggleSector(s)} className="w-full text-left px-3 py-2 hover:bg-gray-100">{s}</button>
+                                                                    ))}
+                                                                    {SECTORS.filter(s => !preferences.sectors.includes(s)).length === 0 && (
+                                                                        <div className="px-3 py-2 text-sm text-gray-500">No more sectors</div>
+                                                                    )}
+                                                                    <div className="p-2 border-t">
+                                                                        <button type="button" onClick={() => setShowSectorsDropdown(false)} className="text-sm text-gray-600">Done</button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {preferences.sectors.map(s => (
+                                                                <div key={s} className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full border">
+                                                                    <span className="text-sm">{s}</span>
+                                                                    <button type="button" onClick={() => toggleSector(s)} disabled={!isEditingPrefs} className="text-gray-600 hover:text-gray-800">×</button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    {preferences.sectors.length >= MAX_SECTORS && (
+                                                        <p className="mt-1 text-xs text-gray-600">Maximum of {MAX_SECTORS} sectors selected.</p>
+                                                    )}
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm text-gray-700 mb-2">Interested Companies (up to {MAX_SECTORS})</label>
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="relative" ref={companiesDropdownRef}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowCompaniesDropdown(s => !s)}
+                                                                disabled={!isEditingPrefs || preferences.companies.length >= MAX_SECTORS}
+                                                                className="px-3 py-2 border rounded-lg"
+                                                            >
+                                                                Select company
+                                                            </button>
+                                                            {showCompaniesDropdown && (
+                                                                <div className="absolute z-20 mt-2 w-56 bg-white border rounded shadow-lg max-h-48 overflow-auto">
+                                                                    {COMPANIES.filter(c => !preferences.companies.includes(c)).map(c => (
+                                                                        <button key={c} type="button" onClick={() => toggleCompany(c)} className="w-full text-left px-3 py-2 hover:bg-gray-100">{c}</button>
+                                                                    ))}
+                                                                    {COMPANIES.filter(c => !preferences.companies.includes(c)).length === 0 && (
+                                                                        <div className="px-3 py-2 text-sm text-gray-500">No more companies</div>
+                                                                    )}
+                                                                    <div className="p-2 border-t">
+                                                                        <button type="button" onClick={() => setShowCompaniesDropdown(false)} className="text-sm text-gray-600">Done</button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {preferences.companies.map(c => (
+                                                                <div key={c} className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full border">
+                                                                    <span className="text-sm">{c}</span>
+                                                                    <button type="button" onClick={() => toggleCompany(c)} disabled={!isEditingPrefs} className="text-gray-600 hover:text-gray-800">×</button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    {preferences.companies.length >= MAX_SECTORS && (
+                                                        <p className="mt-1 text-xs text-gray-600">Maximum of {MAX_SECTORS} companies selected.</p>
+                                                    )}
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm text-gray-700 mb-2">Preferred Asset</label>
+                                                    <div className="flex gap-3">
+                                                        <button type="button" onClick={() => setPreferredAsset('stocks')} disabled={!isEditingPrefs} className={`px-4 py-2 rounded-lg border ${preferences.preferredAsset === 'stocks' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700'}`}>Stocks</button>
+                                                        <button type="button" onClick={() => setPreferredAsset('crypto')} disabled className="px-4 py-2 rounded-lg border bg-gray-50 text-gray-400 cursor-not-allowed">Crypto (soon)</button>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm text-gray-700 mb-2">Investment Goal</label>
+                                                    <div className="flex gap-2 flex-wrap">
+                                                        {['super_short', 'short', 'medium', 'long'].map(g => (
+                                                            <label key={g} className="p-2 border rounded-lg">
+                                                                <input type="radio" name="pref_goal" value={g} checked={preferences.investmentGoal === g} onChange={() => setInvestmentGoal(g)} disabled={!isEditingPrefs} className="mr-2" />
+                                                                <span className="text-sm">{g === 'super_short' ? 'Super short <2 yrs' : g === 'short' ? 'Short <5 yrs' : g === 'medium' ? 'Medium 5–10 yrs' : 'Long >20 yrs'}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-2 flex justify-end">
+                                                    <button onClick={handlePreferencesSave} disabled={!isEditingPrefs || prefSubmitting} className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-60">
+                                                        {prefSubmitting ? 'Saving...' : 'Save Preferences'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    <User className="w-4 h-4 inline mr-2" />
-                                    Username
-                                </label>
-                                <input
-                                    type="text"
-                                    value={profile.username}
-                                    disabled
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    <Mail className="w-4 h-4 inline mr-2" />
-                                    Email Address
-                                </label>
-                                <input
-                                    type="email"
-                                    value={profile.email}
-                                    disabled
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    <Phone className="w-4 h-4 inline mr-2" />
-                                    Phone Number
-                                </label>
-                                <input
-                                    type="tel"
-                                    value={profile.phone}
-                                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                                    disabled={!isEditing}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    <DollarSign className="w-4 h-4 inline mr-2" />
-                                    Account balance ($)
-                                </label>
-                                <input
-                                    type="number"
-                                    value={profile.balance}
-                                    onChange={(e) => setProfile({ ...profile, balance: e.target.value })}
-                                    disabled={!isEditing}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
-                                <div className="relative">
-                                    <IdCard className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        value={profile.firstName}
-                                        onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
-                                        disabled={!isEditing}
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
-                                <div className="relative">
-                                    <IdCard className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        value={profile.lastName}
-                                        onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
-                                        disabled={!isEditing}
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                                    <input
-                                        type="date"
-                                        value={profile.dateOfBirth}
-                                        onChange={(e) => setProfile({ ...profile, dateOfBirth: e.target.value })}
-                                        disabled={!isEditing}
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
-                                <select
-                                    value={profile.gender}
-                                    onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
-                                    disabled={!isEditing}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                >
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="prefer_not_to_say">Prefer not to say</option>
-                                </select>
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 1</label>
-                                <div className="relative">
-                                    <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        value={profile.addressLine1}
-                                        onChange={(e) => setProfile({ ...profile, addressLine1: e.target.value })}
-                                        disabled={!isEditing}
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                    />
-                                </div>
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 2</label>
-                                <input
-                                    type="text"
-                                    value={profile.addressLine2}
-                                    onChange={(e) => setProfile({ ...profile, addressLine2: e.target.value })}
-                                    disabled={!isEditing}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                                <input
-                                    type="text"
-                                    value={profile.city}
-                                    onChange={(e) => setProfile({ ...profile, city: e.target.value })}
-                                    disabled={!isEditing}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">State/Province</label>
-                                <input
-                                    type="text"
-                                    value={profile.state}
-                                    onChange={(e) => setProfile({ ...profile, state: e.target.value })}
-                                    disabled={!isEditing}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
-                                <input
-                                    type="text"
-                                    value={profile.postalCode}
-                                    onChange={(e) => setProfile({ ...profile, postalCode: e.target.value })}
-                                    disabled={!isEditing}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                                <div className="relative">
-                                    <Globe className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        value={profile.country}
-                                        onChange={(e) => setProfile({ ...profile, country: e.target.value })}
-                                        disabled={!isEditing}
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Job Title</label>
-                                <div className="relative">
-                                    <Briefcase className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        value={profile.jobTitle}
-                                        onChange={(e) => setProfile({ ...profile, jobTitle: e.target.value })}
-                                        disabled={!isEditing}
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
-                                <div className="relative">
-                                    <Building2 className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        value={profile.companyName}
-                                        onChange={(e) => setProfile({ ...profile, companyName: e.target.value })}
-                                        disabled={!isEditing}
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                    />
-                                </div>
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Industry Background</label>
-                                <div className="relative">
-                                    <Landmark className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        value={profile.industry}
-                                        onChange={(e) => setProfile({ ...profile, industry: e.target.value })}
-                                        disabled={!isEditing}
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Employment Status</label>
-                                <select
-                                    value={profile.employmentStatus}
-                                    onChange={(e) => setProfile({ ...profile, employmentStatus: e.target.value })}
-                                    disabled={!isEditing}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                >
-                                    <option value="employed">Employed</option>
-                                    <option value="self_employed">Self-employed</option>
-                                    <option value="student">Student</option>
-                                    <option value="unemployed">Unemployed</option>
-                                    <option value="retired">Retired</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Annual Income Range</label>
-                                <div className="relative">
-                                    <DollarSign className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                                    <select
-                                        value={profile.salaryRange}
-                                        onChange={(e) => setProfile({ ...profile, salaryRange: e.target.value })}
-                                        disabled={!isEditing}
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                                    >
-                                        <option value="">Select range</option>
-                                        <option value="Below_50k">Below $50k</option>
-                                        <option value="BETWEEN_50k_100k">$50k–$100k</option>
-                                        <option value="BETWEEN_100k_200k">$100k–$200k</option>
-                                        <option value="Above_200k">Above $200k</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* User Preferences (sectors, companies, preferred asset, investment goal) */}
-                        <div className="border-t pt-6">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-bold text-gray-900 mb-4">
-                                    <Target className="w-5 h-5 inline mr-2" />
-                                    Investment Preferences
-                                </h3>
-                                <div>
-                                    {!isEditingPrefs ? (
-                                        <button onClick={() => setIsEditingPrefs(true)} className="px-3 py-1 bg-blue-600 text-white rounded-lg">Edit Preferences</button>
-                                    ) : (
-                                        <button onClick={() => setIsEditingPrefs(false)} className="px-3 py-1 bg-gray-200 rounded-lg">Cancel</button>
-                                    )}
-                                </div>
-                            </div>
-
-                            {prefLoading ? (
-                                <div className="text-sm text-gray-500">Loading preferences...</div>
-                            ) : (
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm text-gray-700 mb-2">Interested Sectors (up to {MAX_SECTORS})</label>
-                                        <div className="flex items-start gap-3">
-                                            <div className="relative" ref={prefDropdownRef}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowSectorsDropdown(s => !s)}
-                                                    disabled={!isEditingPrefs || preferences.sectors.length >= MAX_SECTORS}
-                                                    className="px-3 py-2 border rounded-lg"
-                                                >
-                                                    Select sector
-                                                </button>
-                                                {showSectorsDropdown && (
-                                                    <div className="absolute z-20 mt-2 w-56 bg-white border rounded shadow-lg max-h-48 overflow-auto">
-                                                        {SECTORS.filter(s => !preferences.sectors.includes(s)).map(s => (
-                                                            <button key={s} type="button" onClick={() => toggleSector(s)} className="w-full text-left px-3 py-2 hover:bg-gray-100">{s}</button>
-                                                        ))}
-                                                        {SECTORS.filter(s => !preferences.sectors.includes(s)).length === 0 && (
-                                                            <div className="px-3 py-2 text-sm text-gray-500">No more sectors</div>
-                                                        )}
-                                                        <div className="p-2 border-t">
-                                                            <button type="button" onClick={() => setShowSectorsDropdown(false)} className="text-sm text-gray-600">Done</button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {preferences.sectors.map(s => (
-                                                    <div key={s} className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full border">
-                                                        <span className="text-sm">{s}</span>
-                                                        <button type="button" onClick={() => toggleSector(s)} disabled={!isEditingPrefs} className="text-gray-600 hover:text-gray-800">×</button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        {preferences.sectors.length >= MAX_SECTORS && (
-                                            <p className="mt-1 text-xs text-gray-600">Maximum of {MAX_SECTORS} sectors selected.</p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm text-gray-700 mb-2">Interested Companies (up to {MAX_SECTORS})</label>
-                                        <div className="flex items-start gap-3">
-                                            <div className="relative" ref={companiesDropdownRef}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowCompaniesDropdown(s => !s)}
-                                                    disabled={!isEditingPrefs || preferences.companies.length >= MAX_SECTORS}
-                                                    className="px-3 py-2 border rounded-lg"
-                                                >
-                                                    Select company
-                                                </button>
-                                                {showCompaniesDropdown && (
-                                                    <div className="absolute z-20 mt-2 w-56 bg-white border rounded shadow-lg max-h-48 overflow-auto">
-                                                        {COMPANIES.filter(c => !preferences.companies.includes(c)).map(c => (
-                                                            <button key={c} type="button" onClick={() => toggleCompany(c)} className="w-full text-left px-3 py-2 hover:bg-gray-100">{c}</button>
-                                                        ))}
-                                                        {COMPANIES.filter(c => !preferences.companies.includes(c)).length === 0 && (
-                                                            <div className="px-3 py-2 text-sm text-gray-500">No more companies</div>
-                                                        )}
-                                                        <div className="p-2 border-t">
-                                                            <button type="button" onClick={() => setShowCompaniesDropdown(false)} className="text-sm text-gray-600">Done</button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {preferences.companies.map(c => (
-                                                    <div key={c} className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full border">
-                                                        <span className="text-sm">{c}</span>
-                                                        <button type="button" onClick={() => toggleCompany(c)} disabled={!isEditingPrefs} className="text-gray-600 hover:text-gray-800">×</button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        {preferences.companies.length >= MAX_SECTORS && (
-                                            <p className="mt-1 text-xs text-gray-600">Maximum of {MAX_SECTORS} companies selected.</p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm text-gray-700 mb-2">Preferred Asset</label>
-                                        <div className="flex gap-3">
-                                            <button type="button" onClick={() => setPreferredAsset('stocks')} disabled={!isEditingPrefs} className={`px-4 py-2 rounded-lg border ${preferences.preferredAsset === 'stocks' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700'}`}>Stocks</button>
-                                            <button type="button" onClick={() => setPreferredAsset('crypto')} disabled className="px-4 py-2 rounded-lg border bg-gray-50 text-gray-400 cursor-not-allowed">Crypto (soon)</button>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm text-gray-700 mb-2">Investment Goal</label>
-                                        <div className="flex gap-2 flex-wrap">
-                                            {['super_short', 'short', 'medium', 'long'].map(g => (
-                                                <label key={g} className="p-2 border rounded-lg">
-                                                    <input type="radio" name="pref_goal" value={g} checked={preferences.investmentGoal === g} onChange={() => setInvestmentGoal(g)} disabled={!isEditingPrefs} className="mr-2" />
-                                                    <span className="text-sm">{g === 'super_short' ? 'Super short <2 yrs' : g === 'short' ? 'Short <5 yrs' : g === 'medium' ? 'Medium 5–10 yrs' : 'Long >20 yrs'}</span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-2 flex justify-end">
-                                        <button onClick={handlePreferencesSave} disabled={!isEditingPrefs || prefSubmitting} className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-60">
-                                            {prefSubmitting ? 'Saving...' : 'Save Preferences'}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                    </main>
                 </div>
             </div>
         </div>
