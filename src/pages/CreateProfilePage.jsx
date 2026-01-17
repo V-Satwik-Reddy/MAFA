@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Phone, Calendar, MapPin, Building2, Landmark, IdCard, Globe, Briefcase, CheckCircle, XCircle, AlertCircle, Loader, Save, DollarSign } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
-
+import { useAuth } from '../context/AuthContext';
 const USERNAME_REGEX = /^[A-Za-z0-9_]+$/;
 
 const SECTORS = [
@@ -35,6 +35,7 @@ const COMPANIES = [
 const MAX_SECTORS = 4;
 const CreateProfilePage = () => {
   const navigate = useNavigate();
+  const { setAccessToken, setUser } = useAuth();
   const [createData, setCreateData] = useState({
     firstName: '',
     lastName: '',
@@ -170,6 +171,11 @@ const CreateProfilePage = () => {
       setPreferencesSaved(true);
       setShowSectorsDropdown(false);
       alert('Preferences saved!');
+      api.post("/auth/refresh")
+      .then(res => {
+        setAccessToken(res.data.accessToken);
+        setUser(res.data.user);
+      });
       navigate('/profile');
     } catch (err) {
       console.error('Preferences save error:', err);

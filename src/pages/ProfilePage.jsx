@@ -95,7 +95,7 @@ const ProfilePage = () => {
                     username: data.username || '',
                     email: data.email || '',
                     phone: data.phone || '',
-                    balance: data.balance || '',
+                    balance: data.balance || 0.0,
                     riskProfile: data.riskProfile || 'moderate',
                     preferredAssets: data.preferredAssets || ['stocks'],
                     firstName: data.firstName || '',
