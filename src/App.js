@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate,Outlet } from 'react-router-dom';
 import { useEffect, useMemo, useRef, useState } from "react";
 import api from "./api/axios";
 import { useAuth } from "./context/AuthContext";
@@ -9,21 +9,30 @@ import DashboardPage from './pages/DashboardPage';
 import ChatPage from './pages/ChatPage';
 import ProfilePage from './pages/ProfilePage';
 import SignupPage from './pages/SignUpPage';
+import AddBalancePage from './pages/AddBalancePage';
 import WelcomePage from './pages/WelcomePage';
 import TransactionsPage from './pages/TransactionsPage';
 import TradeExecutionPage from './pages/TradeExecutionPage';
 import GraphsPage from './pages/GraphsPage';
-function ProtectedRoute({ children }) {
+import CreateProfilePage from './pages/CreateProfilePage';
+
+function ProtectedRoute() {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  return children;
+  return <Outlet />;
 }
 
-function PublicRoute({ children }) {
+function PublicRoute() {
   const { user } = useAuth();
-  if (user) return <Navigate to="/home" replace />;
-  return children;
+  if (user) {
+    if (user.isProfileCreated === false) {
+      return <Navigate to="/create-profile" replace />;
+    }
+    return <Navigate to="/home" replace />;
+  }
+  return <Outlet />;
 }
+
 
 function App() {
   const { setAccessToken, setUser, logout } = useAuth();
@@ -48,13 +57,13 @@ function App() {
     api.post("/auth/refresh")
       .then(res => {
         setAccessToken(res.data.accessToken);
-        return api.get("/profile/me");
+        setUser(res.data.user);
       })
-      .then(res => {
-        setUser(res.data.data);
-      })
-      .catch(() => {
-        logout();
+      .catch((res) => {
+        console.log('App auto-login failed',res);
+        setTimeout(() =>
+        logout()
+        , 3000);
       })
       .finally(() => setLoading(false));
   }, [setAccessToken, setUser, logout]);
@@ -64,19 +73,28 @@ function App() {
   return (
     <Router basename={basename}>
       <Routes>
-        <Route path="/" element={<PublicRoute><WelcomePage /></PublicRoute>} />
-        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-        <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
-        
-        <Route path="/transactions" element={<ProtectedRoute><TransactionsPage /></ProtectedRoute>} />
-        <Route path="/trade" element={<ProtectedRoute><TradeExecutionPage /></ProtectedRoute>} />
-        <Route path="/graphs" element={<ProtectedRoute><GraphsPage /></ProtectedRoute>} />
-        <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-        <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/" element={<WelcomePage />} />
+        {/* Public routes */}
+        <Route element={<PublicRoute />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+        </Route>
+
+        {/* Protected routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/create-profile" element={<CreateProfilePage />} />
+          <Route path="/home" element={<HomePage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/profile/add-balance" element={<AddBalancePage />} />
+          <Route path="/transactions" element={<TransactionsPage />} />
+          <Route path="/trade" element={<TradeExecutionPage />} />
+          <Route path="/graphs" element={<GraphsPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/chat" element={<ChatPage />} />
+        </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
+
       </Routes>
     </Router>
   );
