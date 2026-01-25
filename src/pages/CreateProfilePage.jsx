@@ -8,30 +8,7 @@ import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 const USERNAME_REGEX = /^[A-Za-z0-9_]+$/;
 
-const SECTORS = [
-  'Technology',
-  'Healthcare',
-  'Finance',
-  'Energy (Oil & Gas)',
-  'Aerospace',
-  'Mining',
-  'Electronics',
-  'Real Estate',
-  'Consumer Goods',
-  'Utilities',
-];
-const COMPANIES = [
-  'Apple',
-  'Microsoft',
-  'Google',
-  'Amazon',
-  'Tesla',
-  'Meta Platforms',
-  'NVIDIA',
-  'Samsung',
-  'JPMorgan Chase',
-  'ExxonMobil',
-];
+// fetched from API: { id, name } for sectors and { id, symbol, name } for companies
 const MAX_SECTORS = 4;
 const CreateProfilePage = () => {
   const navigate = useNavigate();
@@ -60,11 +37,13 @@ const CreateProfilePage = () => {
 
   const [preferences, setPreferences] = useState({
     sectors: [],
-    riskLevel: 'moderate',
+    riskTolerance: 'moderate',
     preferredAsset: 'stocks', // only stocks selectable for now
     investmentGoals: 'short',
     companies: [],
   });
+  const [sectorsList, setSectorsList] = useState([]);
+  const [companiesList, setCompaniesList] = useState([]);
   const [profileCreated, setProfileCreated] = useState(false);
   const [prefSubmitting, setPrefSubmitting] = useState(false);
   const dropdownRef = useRef(null);
@@ -79,6 +58,8 @@ const CreateProfilePage = () => {
 
   // Username debounce + validation
   useEffect(() => {
+    
+
     const name = createData.username.trim();
     setUsernameMessage('');
 
@@ -119,6 +100,51 @@ const CreateProfilePage = () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [createData.username]);
+
+  useEffect(() => {
+    // previously fetched lists on mount; now we fetch when dropdown opens
+  }, []);
+
+  const [sectorsLoading, setSectorsLoading] = useState(false);
+  const [companiesLoading, setCompaniesLoading] = useState(false);
+
+  const handleToggleSectorsDropdown = async () => {
+    if (!showSectorsDropdown) {
+      if (!sectorsList.length) {
+        setSectorsLoading(true);
+        try {
+          const sres = await api.get('/sectors');
+          if (sres?.data?.data) setSectorsList(sres.data.data);
+        } catch (e) {
+          console.error('Failed to load sectors', e);
+        } finally {
+          setSectorsLoading(false);
+        }
+      }
+      setShowSectorsDropdown(true);
+    } else {
+      setShowSectorsDropdown(false);
+    }
+  };
+
+  const handleToggleCompaniesDropdown = async () => {
+    if (!showCompaniesDropdown) {
+      if (!companiesList.length) {
+        setCompaniesLoading(true);
+        try {
+          const cres = await api.get('/companies');
+          if (cres?.data?.data) setCompaniesList(cres.data.data);
+        } catch (e) {
+          console.error('Failed to load companies', e);
+        } finally {
+          setCompaniesLoading(false);
+        }
+      }
+      setShowCompaniesDropdown(true);
+    } else {
+      setShowCompaniesDropdown(false);
+    }
+  };
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
@@ -165,8 +191,16 @@ const CreateProfilePage = () => {
     }
     setPrefSubmitting(true);
     try {
-      console.log('Submitting preferences:', preferences);
-      const resp = await api.post('/profile/create-preferences', preferences);
+      // map to backend PreferenceRequest DTO
+      const payload = {
+        investmentGoals: preferences.investmentGoals,
+        riskTolerance: preferences.riskTolerance,
+        preferredAsset: preferences.preferredAsset,
+        sectorIds: preferences.sectors,
+        companyIds: preferences.companies,
+      };
+      console.log('Submitting preferences payload:', payload);
+      const resp = await api.post('/profile/create-preferences', payload);
       if (resp.status !== 200 && resp.status !== 201) throw new Error('Failed to save preferences');
       setPreferencesSaved(true);
       setShowSectorsDropdown(false);
@@ -185,29 +219,29 @@ const CreateProfilePage = () => {
     }
   };
 
-  const toggleSector = (sector) => {
+  const toggleSector = (sectorId) => {
     setPreferences(prev => {
-      const exists = prev.sectors.includes(sector);
-      if (exists) return { ...prev, sectors: prev.sectors.filter(s => s !== sector) };
+      const exists = prev.sectors.includes(sectorId);
+      if (exists) return { ...prev, sectors: prev.sectors.filter(s => s !== sectorId) };
       if (prev.sectors.length >= MAX_SECTORS) return prev; // ignore additional
-      const newSectors = [...prev.sectors, sector];
+      const newSectors = [...prev.sectors, sectorId];
       if (newSectors.length >= MAX_SECTORS) setShowSectorsDropdown(false);
       return { ...prev, sectors: newSectors };
     });
   };
 
-  const toggleCompany = (company) => {
+  const toggleCompany = (companyId) => {
     setPreferences(prev => {
-      const exists = prev.companies.includes(company);
-      if (exists) return { ...prev, companies: prev.companies.filter(c => c !== company) };
+      const exists = prev.companies.includes(companyId);
+      if (exists) return { ...prev, companies: prev.companies.filter(c => c !== companyId) };
       if (prev.companies.length >= MAX_SECTORS) return prev;
-      const newCompanies = [...prev.companies, company];
+      const newCompanies = [...prev.companies, companyId];
       if (newCompanies.length >= MAX_SECTORS) setShowCompaniesDropdown(false);
       return { ...prev, companies: newCompanies };
     });
   };
 
-  const setRisk = (level) => setPreferences(prev => ({ ...prev, riskLevel: level }));
+  const setRisk = (level) => setPreferences(prev => ({ ...prev, riskTolerance: level }));
   const setAsset = (asset) => setPreferences(prev => ({ ...prev, preferredAsset: asset }));
   const setGoal = (goal) => setPreferences(prev => ({ ...prev, investmentGoals: goal }));
   useEffect(() => {
@@ -525,30 +559,39 @@ const CreateProfilePage = () => {
                   <label className="block text-sm text-gray-700 mb-2">Interested Sectors (up to {MAX_SECTORS})</label>
                   <div className="flex items-start gap-3">
                       <div className="relative" ref={dropdownRef}>
-                        <button type="button" onClick={()=>setShowSectorsDropdown(s=>!s)} disabled={preferences.sectors.length >= MAX_SECTORS} className="px-3 py-2 border rounded-lg">
+                        <button type="button" onClick={handleToggleSectorsDropdown} disabled={preferences.sectors.length >= MAX_SECTORS} className="px-3 py-2 border rounded-lg">
                           Select sector
                         </button>
                         {showSectorsDropdown && (
                           <div className="absolute z-20 mt-2 w-56 bg-white border rounded shadow-lg max-h-48 overflow-auto">
-                            {SECTORS.filter(s=>!preferences.sectors.includes(s)).map(s => (
-                              <button key={s} type="button" onClick={()=>toggleSector(s)} className="w-full text-left px-3 py-2 hover:bg-gray-100">{s}</button>
-                            ))}
-                            {SECTORS.filter(s=>!preferences.sectors.includes(s)).length===0 && (
-                              <div className="px-3 py-2 text-sm text-gray-500">No more sectors</div>
+                            {sectorsLoading ? (
+                              <div className="p-3 flex items-center gap-2"><Loader className="w-4 h-4 animate-spin text-gray-400" /> <span className="text-sm text-gray-500">Loading...</span></div>
+                            ) : (
+                              <>
+                                {sectorsList.filter(item => !preferences.sectors.includes(item.id)).map(item => (
+                                  <button key={item.id} type="button" onClick={()=>toggleSector(item.id)} className="w-full text-left px-3 py-2 hover:bg-gray-100">{item.name}</button>
+                                ))}
+                                {sectorsList.filter(item => !preferences.sectors.includes(item.id)).length===0 && (
+                                  <div className="px-3 py-2 text-sm text-gray-500">No more sectors</div>
+                                )}
+                                <div className="p-2 border-t">
+                                  <button type="button" onClick={()=>setShowSectorsDropdown(false)} className="text-sm text-gray-600">Done</button>
+                                </div>
+                              </>
                             )}
-                            <div className="p-2 border-t">
-                              <button type="button" onClick={()=>setShowSectorsDropdown(false)} className="text-sm text-gray-600">Done</button>
-                            </div>
                           </div>
                         )}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {preferences.sectors.map(s => (
-                          <div key={s} className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full border">
-                            <span className="text-sm">{s}</span>
-                            <button type="button" onClick={()=>toggleSector(s)} className="text-gray-600 hover:text-gray-800">×</button>
-                          </div>
-                        ))}
+                        {preferences.sectors.map(id => {
+                          const s = sectorsList.find(x=>x.id===id);
+                          return (
+                            <div key={id} className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full border">
+                              <span className="text-sm">{s ? s.name : id}</span>
+                              <button type="button" onClick={()=>toggleSector(id)} className="text-gray-600 hover:text-gray-800">×</button>
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
                   {preferences.sectors.length >= MAX_SECTORS && (
@@ -560,30 +603,39 @@ const CreateProfilePage = () => {
                   <label className="block text-sm text-gray-700 mb-2">Interested Companies (up to {MAX_SECTORS})</label>
                   <div className="flex items-start gap-3">
                       <div className="relative" ref={companiesDropdownRef}>
-                        <button type="button" onClick={()=>setShowCompaniesDropdown(s=>!s)} disabled={preferences.companies.length >= MAX_SECTORS} className="px-3 py-2 border rounded-lg">
+                        <button type="button" onClick={handleToggleCompaniesDropdown} disabled={preferences.companies.length >= MAX_SECTORS} className="px-3 py-2 border rounded-lg">
                           Select company
                         </button>
                         {showCompaniesDropdown && (
                           <div className="absolute z-20 mt-2 w-56 bg-white border rounded shadow-lg max-h-48 overflow-auto">
-                            {COMPANIES.filter(c=>!preferences.companies.includes(c)).map(c => (
-                              <button key={c} type="button" onClick={()=>toggleCompany(c)} className="w-full text-left px-3 py-2 hover:bg-gray-100">{c}</button>
-                            ))}
-                            {COMPANIES.filter(c=>!preferences.companies.includes(c)).length===0 && (
-                              <div className="px-3 py-2 text-sm text-gray-500">No more companies</div>
+                            {companiesLoading ? (
+                              <div className="p-3 flex items-center gap-2"><Loader className="w-4 h-4 animate-spin text-gray-400" /> <span className="text-sm text-gray-500">Loading...</span></div>
+                            ) : (
+                              <>
+                                {companiesList.filter(item => !preferences.companies.includes(item.id)).map(item => (
+                                  <button key={item.id} type="button" onClick={()=>toggleCompany(item.id)} className="w-full text-left px-3 py-2 hover:bg-gray-100">{item.name} ({item.symbol})</button>
+                                ))}
+                                {companiesList.filter(item => !preferences.companies.includes(item.id)).length===0 && (
+                                  <div className="px-3 py-2 text-sm text-gray-500">No more companies</div>
+                                )}
+                                <div className="p-2 border-t">
+                                  <button type="button" onClick={()=>setShowCompaniesDropdown(false)} className="text-sm text-gray-600">Done</button>
+                                </div>
+                              </>
                             )}
-                            <div className="p-2 border-t">
-                              <button type="button" onClick={()=>setShowCompaniesDropdown(false)} className="text-sm text-gray-600">Done</button>
-                            </div>
                           </div>
                         )}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {preferences.companies.map(c => (
-                          <div key={c} className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full border">
-                            <span className="text-sm">{c}</span>
-                            <button type="button" onClick={()=>toggleCompany(c)} className="text-gray-600 hover:text-gray-800">×</button>
-                          </div>
-                        ))}
+                        {preferences.companies.map(id => {
+                          const c = companiesList.find(x=>x.id===id);
+                          return (
+                            <div key={id} className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full border">
+                              <span className="text-sm">{c ? `${c.name} (${c.symbol})` : id}</span>
+                              <button type="button" onClick={()=>toggleCompany(id)} className="text-gray-600 hover:text-gray-800">×</button>
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
                   {preferences.companies.length >= MAX_SECTORS && (
@@ -595,15 +647,15 @@ const CreateProfilePage = () => {
                   <label className="block text-sm text-gray-700 mb-2">Risk Profile</label>
                   <div className="flex gap-3">
                     <label className="p-3 border rounded-lg">
-                      <input type="radio" name="risk2" value="low" checked={preferences.riskLevel==='low'} onChange={()=>setRisk('low')} className="mr-2" />
+                      <input type="radio" name="risk2" value="low" checked={preferences.riskTolerance==='low'} onChange={()=>setRisk('low')} className="mr-2" />
                       <span className="font-medium">Low / Conservative</span>
                     </label>
                     <label className="p-3 border rounded-lg">
-                      <input type="radio" name="risk2" value="moderate" checked={preferences.riskLevel==='moderate'} onChange={()=>setRisk('moderate')} className="mr-2" />
+                      <input type="radio" name="risk2" value="moderate" checked={preferences.riskTolerance==='moderate'} onChange={()=>setRisk('moderate')} className="mr-2" />
                       <span className="font-medium">Moderate</span>
                     </label>
                     <label className="p-3 border rounded-lg">
-                      <input type="radio" name="risk2" value="high" checked={preferences.riskLevel==='high'} onChange={()=>setRisk('high')} className="mr-2" />
+                      <input type="radio" name="risk2" value="high" checked={preferences.riskTolerance==='high'} onChange={()=>setRisk('high')} className="mr-2" />
                       <span className="font-medium">High / Aggressive</span>
                     </label>
                   </div>
