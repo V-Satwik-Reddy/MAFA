@@ -21,7 +21,6 @@ import {
 } from 'recharts';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
-import { TOP_TICKERS } from '../constants/tickers';
 
 const parseDailyPrices = (raw) => {
   if (!raw) return [];
@@ -78,7 +77,10 @@ const PriceTooltip = ({ active, payload, label }) => {
 
 const GraphsPage = () => {
   const navigate = useNavigate();
-  const [selectedTicker, setSelectedTicker] = useState(TOP_TICKERS[0]);
+  const [companies, setCompanies] = useState([]);
+  const [companiesLoading, setCompaniesLoading] = useState(false);
+  const [companiesError, setCompaniesError] = useState(null);
+  const [selectedTicker, setSelectedTicker] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortMode, setSortMode] = useState('none'); // none | az | za
   const [series, setSeries] = useState([]);
@@ -91,16 +93,16 @@ const GraphsPage = () => {
   const filteredTickers = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     const base = q
-      ? TOP_TICKERS.filter((item) =>
-          item.ticker.toLowerCase().includes(q) || item.name.toLowerCase().includes(q)
+      ? companies.filter((item) =>
+          item.symbol?.toLowerCase().includes(q) || item.name?.toLowerCase().includes(q)
         )
-      : TOP_TICKERS;
+      : companies;
 
     const sorted = [...base];
-    if (sortMode === 'az') sorted.sort((a, b) => a.ticker.localeCompare(b.ticker));
-    if (sortMode === 'za') sorted.sort((a, b) => b.ticker.localeCompare(a.ticker));
+    if (sortMode === 'az') sorted.sort((a, b) => (a.symbol || '').localeCompare(b.symbol || ''));
+    if (sortMode === 'za') sorted.sort((a, b) => (b.symbol || '').localeCompare(a.symbol || ''));
     return sorted;
-  }, [searchTerm, sortMode]);
+  }, [searchTerm, sortMode, companies]);
 
   const yDomain = useMemo(() => {
     if (!series.length) return ['auto', 'auto'];
@@ -132,7 +134,7 @@ const GraphsPage = () => {
       setError(null);
       setHoverPoint(null);
       try {
-        const res = await api.get('/stockdailyprices', { params: { symbol: selectedTicker.ticker } });
+        const res = await api.get('/stockdailyprices', { params: { symbol: selectedTicker.symbol } });
         const raw = res?.data?.data ?? res?.data?.prices ?? res?.data;
         const parsed = parseDailyPrices(raw);
         setLastxddays(parsed.length);
@@ -150,6 +152,27 @@ const GraphsPage = () => {
     fetchPrices();
   }, [selectedTicker]);
 
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        setCompaniesLoading(true);
+        setCompaniesError(null);
+        const res = await api.get('/companies');
+        const raw = Array.isArray(res?.data?.data) ? res.data.data : [];
+        setCompanies(raw);
+        if (raw.length) setSelectedTicker(raw[0]);
+      } catch (err) {
+        console.error('Failed to fetch companies', err);
+        setCompanies([]);
+        setCompaniesError('Could not load companies list.');
+      } finally {
+        setCompaniesLoading(false);
+      }
+    };
+
+    fetchCompanies();
+  }, []);
+
   const latest = series[series.length - 1];
 
   return (
@@ -159,11 +182,11 @@ const GraphsPage = () => {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/home')}
               className="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition text-sm"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="font-medium">Back to Dashboard</span>
+              <span className="font-medium">Back to Home</span>
             </button>
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs sm:text-sm font-semibold">
               <LineChartIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -206,7 +229,7 @@ const GraphsPage = () => {
               </label>
             </div>
             <div className="flex items-center justify-between text-xs text-gray-600">
-              <p>Showing {filteredTickers.length} of {TOP_TICKERS.length}</p>
+              <p>Showing {filteredTickers.length} of {companies.length}</p>
               <button
                 type="button"
                 onClick={() => setSortMode((prev) => (prev === 'none' ? 'az' : prev === 'az' ? 'za' : 'none'))}
@@ -218,10 +241,10 @@ const GraphsPage = () => {
             <div className="flex-1 overflow-y-auto pr-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
                 {filteredTickers.map((item) => {
-                  const isSelected = selectedTicker?.ticker === item.ticker;
+                  const isSelected = selectedTicker?.symbol === item.symbol;
                   return (
                     <button
-                      key={item.ticker}
+                      key={item.symbol}
                       onClick={() => setSelectedTicker(item)}
                       className={`w-full text-left rounded-xl border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
                         isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'
@@ -229,9 +252,8 @@ const GraphsPage = () => {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div>
-                          <p className="text-sm font-semibold text-blue-700">{item.ticker}</p>
+                          <p className="text-sm font-semibold text-blue-700">{item.symbol}</p>
                           <p className="text-base font-bold text-gray-900 line-clamp-1">{item.name}</p>
-                          <p className="text-[11px] text-gray-600">Region: {item.region}</p>
                         </div>
                         {isSelected ? (
                           <span className="px-2 py-1 text-[11px] rounded-full bg-blue-100 text-blue-700 font-semibold">Active</span>

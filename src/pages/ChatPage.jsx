@@ -12,7 +12,6 @@ import {
 } from 'recharts';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
-import { TOP_TICKERS } from '../constants/tickers';
 
 const parseDailyPrices = (raw) => {
     if (!raw) return [];
@@ -54,8 +53,8 @@ const parseDailyPrices = (raw) => {
     return [];
 };
 
-const GraphToolPanel = ({ initialSymbol }) => {
-    const [symbol, setSymbol] = useState(initialSymbol || TOP_TICKERS[0].ticker);
+const GraphToolPanel = ({ initialSymbol, companies = [] }) => {
+    const [symbol, setSymbol] = useState(initialSymbol || companies[0]?.symbol || '');
     const [series, setSeries] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -92,6 +91,10 @@ const GraphToolPanel = ({ initialSymbol }) => {
         fetchPrices();
     }, [symbol]);
 
+    useEffect(() => {
+        if (!symbol && initialSymbol) setSymbol(initialSymbol);
+    }, [initialSymbol]);
+
     return (
         <div className="h-full flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
@@ -104,9 +107,9 @@ const GraphToolPanel = ({ initialSymbol }) => {
                     onChange={(e) => setSymbol(e.target.value)}
                     className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
                 >
-                    {TOP_TICKERS.slice(0, 30).map((item) => (
-                        <option key={item.ticker} value={item.ticker}>
-                            {item.ticker} · {item.name}
+                    {companies.slice(0, 30).map((item) => (
+                        <option key={item.symbol} value={item.symbol}>
+                            {item.symbol} · {item.name}
                         </option>
                     ))}
                 </select>
@@ -176,8 +179,8 @@ const GraphToolPanel = ({ initialSymbol }) => {
     );
 };
 
-const TradeToolPanel = ({ initialSymbol }) => {
-    const [symbol, setSymbol] = useState(initialSymbol || TOP_TICKERS[0].ticker);
+const TradeToolPanel = ({ initialSymbol, companies = [] }) => {
+    const [symbol, setSymbol] = useState(initialSymbol || companies[0]?.symbol || '');
     const [quantity, setQuantity] = useState(0);
     const [price, setPrice] = useState(null);
     const [balance, setBalance] = useState(null);
@@ -243,6 +246,10 @@ const TradeToolPanel = ({ initialSymbol }) => {
         fetchPrice();
     }, [symbol]);
 
+    useEffect(() => {
+        if (!symbol && initialSymbol) setSymbol(initialSymbol);
+    }, [initialSymbol]);
+
     const maxBuyable = useMemo(() => {
         if (!Number.isFinite(balance) || !Number.isFinite(price) || price <= 0) return null;
         return Math.max(0, Math.floor(balance / price));
@@ -299,9 +306,9 @@ const TradeToolPanel = ({ initialSymbol }) => {
                     onChange={(e) => setSymbol(e.target.value)}
                     className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
                 >
-                    {TOP_TICKERS.slice(0, 30).map((item) => (
-                        <option key={item.ticker} value={item.ticker}>
-                            {item.ticker} · {item.name}
+                    {companies.slice(0, 30).map((item) => (
+                        <option key={item.symbol} value={item.symbol}>
+                            {item.symbol} · {item.name}
                         </option>
                     ))}
                 </select>
@@ -513,7 +520,7 @@ const TransactionsToolPanel = ({ initialSymbol }) => {
     );
 };
 
-const ToolDisplay = ({ activeTool, onClose }) => {
+const ToolDisplay = ({ activeTool, onClose, companies = [] }) => {
     if (!activeTool) return null;
     const symbol = activeTool.payload?.symbol || activeTool.payload?.ticker;
     return (
@@ -537,9 +544,9 @@ const ToolDisplay = ({ activeTool, onClose }) => {
             <div className="bg-white/5 border border-white/20 rounded-xl p-3 h-full overflow-hidden backdrop-blur-sm">
                 <div className="h-full bg-gradient-to-br from-white to-slate-50 rounded-lg p-3 shadow-inner">
                     {activeTool.tool === 'graph' ? (
-                        <GraphToolPanel initialSymbol={symbol || TOP_TICKERS[0].ticker} />
+                        <GraphToolPanel initialSymbol={symbol || companies[0]?.symbol} companies={companies} />
                     ) : activeTool.tool === 'execute' ? (
-                        <TradeToolPanel initialSymbol={symbol || TOP_TICKERS[0].ticker} />
+                        <TradeToolPanel initialSymbol={symbol || companies[0]?.symbol} companies={companies} />
                     ) : (
                         <TransactionsToolPanel initialSymbol={symbol || ''} />
                     )}
@@ -568,6 +575,8 @@ const ChatPage = () => {
     const [activeTool, setActiveTool] = useState(null);
     const [agentsCollapsed, setAgentsCollapsed] = useState(false);
     const messagesEndRef = useRef(null);
+    const [companies, setCompanies] = useState([]);
+    const [companiesLoading, setCompaniesLoading] = useState(false);
     const showTool = Boolean(activeTool);
 
     const scrollToBottom = () => {
@@ -623,6 +632,24 @@ const ChatPage = () => {
         };
 
         fetchHistory();
+    }, []);
+
+    // Load companies list on mount
+    useEffect(() => {
+        const fetchCompanies = async () => {
+            try {
+                setCompaniesLoading(true);
+                const res = await api.get('/companies');
+                const raw = Array.isArray(res?.data?.data) ? res.data.data : [];
+                setCompanies(raw);
+            } catch (err) {
+                console.error('Failed to fetch companies', err);
+                setCompanies([]);
+            } finally {
+                setCompaniesLoading(false);
+            }
+        };
+        fetchCompanies();
     }, []);
 
     // Stream bot response word-by-word
@@ -958,7 +985,7 @@ const ChatPage = () => {
                                     }`}
                                     style={{ transitionProperty: 'opacity, transform' }}
                                 >
-                                    <ToolDisplay activeTool={activeTool} onClose={() => setActiveTool(null)} />
+                                    <ToolDisplay activeTool={activeTool} onClose={() => setActiveTool(null)} companies={companies} />
                                 </div>
                             </div>
                         </div>
@@ -976,7 +1003,7 @@ const ChatPage = () => {
                         }}
                     >
                         <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-3 shadow-xl mt-2">
-                            <ToolDisplay activeTool={activeTool} onClose={() => setActiveTool(null)} />
+                            <ToolDisplay activeTool={activeTool} onClose={() => setActiveTool(null)} companies={companies} />
                         </div>
                     </div>
                 ) : null}
