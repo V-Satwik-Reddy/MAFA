@@ -24,6 +24,7 @@ const HomePage = () => {
             setLoading(true);
             setError(null);
             try {
+                // Fetch user holdings
                 const holdingRes = await api.get('/profile/holdings');
                 const rawHoldings = Array.isArray(holdingRes?.data?.data)
                     ? holdingRes.data.data
@@ -32,7 +33,11 @@ const HomePage = () => {
                         : [];
 
                 const holdings = rawHoldings
-                    .map((item) => ({ symbol: item?.symbol, quantity: Number(item?.quantity) }))
+                    .map((item) => ({
+                        symbol: item?.symbol,
+                        quantity: Number(item?.quantity),
+                        price: Number(item?.price),
+                    }))
                     .filter((item) => item.symbol && Number.isFinite(item.quantity) && item.quantity > 0);
 
                 if (!holdings.length) {
@@ -44,55 +49,31 @@ const HomePage = () => {
                     return;
                 }
 
-                const stockPayloads = await Promise.all(
-                    holdings.map(async ({ symbol, quantity }) => {
-                        try {
-                            const res = await api.get('/stockchange', { params: { symbol } });
-                            const payload = res?.data?.data ?? res?.data ?? {};
-                            const price = Number(payload?.price);
-                            const change = Number(payload?.change);
-                            const changePercent = Number(payload?.changePercent);
-
-                            return {
-                                symbol,
-                                quantity,
-                                price: Number.isFinite(price) ? price : 0,
-                                change: Number.isFinite(change) ? change : 0,
-                                changePercent: Number.isFinite(changePercent) ? changePercent : 0,
-                            };
-                        } catch (err) {
-                            console.error('Failed to fetch stock change for', symbol, err);
-                            return { symbol, quantity, price: 0, change: 0, changePercent: 0 };
-                        }
-                    })
+                // Compute portfolio value directly from holdings (quantity * price)
+                const portfolioTotal = holdings.reduce(
+                    (acc, { quantity, price }) => acc + (Number(quantity) || 0) * (Number(price) || 0),
+                    0
                 );
+                setPortfolioValue(portfolioTotal);
+                setTodaysGain(0);
+                setTodaysGainPercent(0);
+                setActivePositions(holdings.length);
 
-                setMarketData(
-                    stockPayloads.map(({ symbol, price, change, changePercent }) => ({
-                        symbol,
-                        price,
-                        change,
-                        changePercent,
-                    }))
-                );
-
-                const totals = stockPayloads.reduce(
-                    (acc, { quantity, price, change }) => {
-                        const qty = Number(quantity) || 0;
-                        const p = Number(price) || 0;
-                        const c = Number(change) || 0;
-                        acc.current += qty * p;
-                        acc.gain += qty * c;
-                        acc.previous += qty * (p - c);
-                        return acc;
-                    },
-                    { current: 0, gain: 0, previous: 0 }
-                );
-
-                setPortfolioValue(totals.current);
-                setTodaysGain(totals.gain);
-                setTodaysGainPercent(totals.previous > 0 ? (totals.gain / totals.previous) * 100 : 0);
-                setActivePositions(stockPayloads.filter((item) => (Number(item.quantity) || 0) > 0).length);
+                // Fetch user stock changes once
+                try {
+                    const scRes = await api.get('/user-stockchange');
+                    const scRaw = Array.isArray(scRes?.data?.data) ? scRes.data.data : [];
+                    const normalized = scRaw.map((item) => ({
+                        symbol: item?.symbol,
+                        price: Number(item?.price) || 0,
+                        change: Number(item?.change) || 0,
+                        changePercent: Number(item?.changePercent) || 0,
+                    }));
+                    setMarketData(normalized);
+                } catch (err) {
+                    console.error('Failed to fetch user stock changes', err);
+                    setMarketData([]);
+                }
             } catch (err) {
                 console.error('Failed to load portfolio data', err);
                 setError('Could not load portfolio data right now.');
