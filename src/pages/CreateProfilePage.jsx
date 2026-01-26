@@ -10,6 +10,7 @@ const USERNAME_REGEX = /^[A-Za-z0-9_]+$/;
 
 // fetched from API: { id, name } for sectors and { id, symbol, name } for companies
 const MAX_SECTORS = 4;
+const MAX_COMPANIES = 8;
 const CreateProfilePage = () => {
   const navigate = useNavigate();
   const { setAccessToken, setUser } = useAuth();
@@ -102,7 +103,36 @@ const CreateProfilePage = () => {
   }, [createData.username]);
 
   useEffect(() => {
-    // previously fetched lists on mount; now we fetch when dropdown opens
+    // Fetch sectors and companies lists on mount so dropdowns have data
+    const fetchLists = async () => {
+      // Fetch sectors
+      try {
+        setSectorsLoading(true);
+        const sres = await api.get('/sectors');
+        const sdata = Array.isArray(sres?.data?.data) ? sres.data.data : [];
+        setSectorsList(sdata);
+      } catch (e) {
+        console.error('Failed to load sectors', e);
+        setSectorsList([]);
+      } finally {
+        setSectorsLoading(false);
+      }
+
+      // Fetch companies
+      try {
+        setCompaniesLoading(true);
+        const cres = await api.get('/companies');
+        const cdata = Array.isArray(cres?.data?.data) ? cres.data.data : [];
+        setCompaniesList(cdata);
+      } catch (e) {
+        console.error('Failed to load companies', e);
+        setCompaniesList([]);
+      } finally {
+        setCompaniesLoading(false);
+      }
+    };
+
+    fetchLists();
   }, []);
 
   const [sectorsLoading, setSectorsLoading] = useState(false);
@@ -234,9 +264,9 @@ const CreateProfilePage = () => {
     setPreferences(prev => {
       const exists = prev.companies.includes(companyId);
       if (exists) return { ...prev, companies: prev.companies.filter(c => c !== companyId) };
-      if (prev.companies.length >= MAX_SECTORS) return prev;
+      if (prev.companies.length >= MAX_COMPANIES) return prev;
       const newCompanies = [...prev.companies, companyId];
-      if (newCompanies.length >= MAX_SECTORS) setShowCompaniesDropdown(false);
+      if (newCompanies.length >= MAX_COMPANIES) setShowCompaniesDropdown(false);
       return { ...prev, companies: newCompanies };
     });
   };
@@ -600,10 +630,10 @@ const CreateProfilePage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-700 mb-2">Interested Companies (up to {MAX_SECTORS})</label>
+                  <label className="block text-sm text-gray-700 mb-2">Interested Companies (up to {MAX_COMPANIES})</label>
                   <div className="flex items-start gap-3">
                       <div className="relative" ref={companiesDropdownRef}>
-                        <button type="button" onClick={handleToggleCompaniesDropdown} disabled={preferences.companies.length >= MAX_SECTORS} className="px-3 py-2 border rounded-lg">
+                        <button type="button" onClick={handleToggleCompaniesDropdown} disabled={preferences.companies.length >= MAX_COMPANIES} className="px-3 py-2 border rounded-lg">
                           Select company
                         </button>
                         {showCompaniesDropdown && (
@@ -638,8 +668,8 @@ const CreateProfilePage = () => {
                         })}
                       </div>
                     </div>
-                  {preferences.companies.length >= MAX_SECTORS && (
-                    <p className="mt-1 text-xs text-gray-600">Maximum of {MAX_SECTORS} companies selected.</p>
+                  {preferences.companies.length >= MAX_COMPANIES && (
+                    <p className="mt-1 text-xs text-gray-600">Maximum of {MAX_COMPANIES} companies selected.</p>
                   )}
                 </div>
 

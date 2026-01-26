@@ -93,7 +93,7 @@ const GraphToolPanel = ({ initialSymbol, companies = [] }) => {
 
     useEffect(() => {
         if (!symbol && initialSymbol) setSymbol(initialSymbol);
-    }, [initialSymbol]);
+    }, [initialSymbol, symbol]);
 
     return (
         <div className="h-full flex flex-col gap-3">
@@ -248,7 +248,7 @@ const TradeToolPanel = ({ initialSymbol, companies = [] }) => {
 
     useEffect(() => {
         if (!symbol && initialSymbol) setSymbol(initialSymbol);
-    }, [initialSymbol]);
+    }, [initialSymbol, symbol]);
 
     const maxBuyable = useMemo(() => {
         if (!Number.isFinite(balance) || !Number.isFinite(price) || price <= 0) return null;
@@ -576,7 +576,6 @@ const ChatPage = () => {
     const [agentsCollapsed, setAgentsCollapsed] = useState(false);
     const messagesEndRef = useRef(null);
     const [companies, setCompanies] = useState([]);
-    const [companiesLoading, setCompaniesLoading] = useState(false);
     const showTool = Boolean(activeTool);
 
     const scrollToBottom = () => {
@@ -638,15 +637,12 @@ const ChatPage = () => {
     useEffect(() => {
         const fetchCompanies = async () => {
             try {
-                setCompaniesLoading(true);
                 const res = await api.get('/companies');
                 const raw = Array.isArray(res?.data?.data) ? res.data.data : [];
                 setCompanies(raw);
             } catch (err) {
                 console.error('Failed to fetch companies', err);
                 setCompanies([]);
-            } finally {
-                setCompaniesLoading(false);
             }
         };
         fetchCompanies();

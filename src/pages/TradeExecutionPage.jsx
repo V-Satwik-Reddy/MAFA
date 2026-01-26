@@ -52,7 +52,6 @@ const TradeExecutionPage = () => {
     const PANEL_HEIGHT = 'min(92vh, 940px)';
     const [searchTerm, setSearchTerm] = useState('');
     const [companies, setCompanies] = useState([]);
-    const [companiesLoading, setCompaniesLoading] = useState(false);
     const [quantities, setQuantities] = useState({});
     const [submitting, setSubmitting] = useState('');
     const [feedback, setFeedback] = useState(null);
@@ -153,15 +152,12 @@ const TradeExecutionPage = () => {
     useEffect(() => {
         const fetchCompanies = async () => {
             try {
-                setCompaniesLoading(true);
                 const res = await api.get('/companies');
                 const raw = Array.isArray(res?.data?.data) ? res.data.data : [];
                 setCompanies(raw);
             } catch (err) {
                 console.error('Failed to fetch companies', err);
                 setCompanies([]);
-            } finally {
-                setCompaniesLoading(false);
             }
         };
         fetchCompanies();

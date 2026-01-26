@@ -36,6 +36,7 @@ const ProfilePage = () => {
     const [sectorsList, setSectorsList] = useState([]);
     const [companiesList, setCompaniesList] = useState([]);
     const MAX_SECTORS = 4;
+    const MAX_COMPANIES = 8;
 
     const [preferences, setPreferences] = useState({
         sectors: [],
@@ -225,6 +226,21 @@ const ProfilePage = () => {
     };
 
     // Do not auto-fetch lists on load; resolve names only after user opens dropdown
+    useEffect(() => {
+        // Fetch lists on mount so dropdowns have data ready
+        (async () => {
+            try {
+                await loadSectorsIfNeeded();
+            } catch (e) {
+                console.error('Initial sectors load failed', e);
+            }
+            try {
+                await loadCompaniesIfNeeded();
+            } catch (e) {
+                console.error('Initial companies load failed', e);
+            }
+        })();
+    }, []);
 
     // Preference toggles and handlers
     const toggleSector = (sectorId) => setPreferences(prev => {
@@ -238,9 +254,9 @@ const ProfilePage = () => {
     const toggleCompany = (companyId) => setPreferences(prev => {
         const exists = prev.companies.includes(companyId);
         if (exists) return { ...prev, companies: prev.companies.filter(x => x !== companyId) };
-        if (prev.companies.length >= MAX_SECTORS) return prev;
+        if (prev.companies.length >= MAX_COMPANIES) return prev;
         const newC = [...prev.companies, companyId];
-        if (newC.length >= MAX_SECTORS) setShowCompaniesDropdown(false);
+        if (newC.length >= MAX_COMPANIES) setShowCompaniesDropdown(false);
         return { ...prev, companies: newC };
     });
     const setPreferredAsset = (a) => setPreferences(prev => ({ ...prev, preferredAsset: a }));
@@ -718,13 +734,13 @@ const ProfilePage = () => {
                                                 </div>
 
                                                 <div>
-                                                    <label className="block text-sm text-gray-700 mb-2">Interested Companies (up to {MAX_SECTORS})</label>
+                                                    <label className="block text-sm text-gray-700 mb-2">Interested Companies (up to {MAX_COMPANIES})</label>
                                                     <div className="flex items-start gap-3">
                                                         <div className="relative" ref={companiesDropdownRef}>
                                                             <button
                                                                 type="button"
                                                                 onClick={handleToggleCompaniesDropdown}
-                                                                disabled={!isEditingPrefs || preferences.companies.length >= MAX_SECTORS}
+                                                                disabled={!isEditingPrefs || preferences.companies.length >= MAX_COMPANIES}
                                                                 className="px-3 py-2 border rounded-lg"
                                                             >
                                                                 Select company
@@ -755,8 +771,8 @@ const ProfilePage = () => {
                                                             })}
                                                         </div>
                                                     </div>
-                                                    {preferences.companies.length >= MAX_SECTORS && (
-                                                        <p className="mt-1 text-xs text-gray-600">Maximum of {MAX_SECTORS} companies selected.</p>
+                                                    {preferences.companies.length >= MAX_COMPANIES && (
+                                                        <p className="mt-1 text-xs text-gray-600">Maximum of {MAX_COMPANIES} companies selected.</p>
                                                     )}
                                                 </div>
 

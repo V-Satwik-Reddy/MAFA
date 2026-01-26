@@ -78,8 +78,7 @@ const PriceTooltip = ({ active, payload, label }) => {
 const GraphsPage = () => {
   const navigate = useNavigate();
   const [companies, setCompanies] = useState([]);
-  const [companiesLoading, setCompaniesLoading] = useState(false);
-  const [companiesError, setCompaniesError] = useState(null);
+  
   const [selectedTicker, setSelectedTicker] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortMode, setSortMode] = useState('none'); // none | az | za
@@ -155,8 +154,6 @@ const GraphsPage = () => {
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
-        setCompaniesLoading(true);
-        setCompaniesError(null);
         const res = await api.get('/companies');
         const raw = Array.isArray(res?.data?.data) ? res.data.data : [];
         setCompanies(raw);
@@ -164,9 +161,6 @@ const GraphsPage = () => {
       } catch (err) {
         console.error('Failed to fetch companies', err);
         setCompanies([]);
-        setCompaniesError('Could not load companies list.');
-      } finally {
-        setCompaniesLoading(false);
       }
     };
 

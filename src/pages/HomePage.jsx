@@ -145,7 +145,7 @@ const HomePage = () => {
                             <div>
                                 <p className="text-sm text-gray-600 mb-1">Active Positions</p>
                                 <h3 className="text-2xl font-bold text-gray-900">{activePositions}</h3>
-                                <p className="text-sm text-gray-500 mt-1">Across {marketData.length} tickers</p>
+                                <p className="text-sm text-gray-500 mt-1">Across {activePositions} sectors</p>
                             </div>
                             <Activity className="w-10 h-10 text-purple-500" />
                         </div>
