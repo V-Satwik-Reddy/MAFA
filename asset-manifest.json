@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/MAFA/static/css/main.552e679b.css",
-    "main.js": "/MAFA/static/js/main.6290a713.js",
+    "main.js": "/MAFA/static/js/main.8559ecba.js",
     "static/js/453.8120b862.chunk.js": "/MAFA/static/js/453.8120b862.chunk.js",
     "index.html": "/MAFA/index.html",
     "main.552e679b.css.map": "/MAFA/static/css/main.552e679b.css.map",
-    "main.6290a713.js.map": "/MAFA/static/js/main.6290a713.js.map",
+    "main.8559ecba.js.map": "/MAFA/static/js/main.8559ecba.js.map",
     "453.8120b862.chunk.js.map": "/MAFA/static/js/453.8120b862.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.552e679b.css",
-    "static/js/main.6290a713.js"
+    "static/js/main.8559ecba.js"
   ]
 }
