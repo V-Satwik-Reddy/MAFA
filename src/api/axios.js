@@ -7,9 +7,13 @@ if (!envBaseUrl && process.env.NODE_ENV === 'production') {
   throw new Error('Missing REACT_APP_API_BASE_URL. Set it in your .env before building.');
 }
 
+// In development, use a relative base URL so CRA's proxy can avoid CORS.
+const isDev = process.env.NODE_ENV === 'development';
+const resolvedBaseUrl = envBaseUrl || (isDev ? '' : 'http://localhost:8080');
+
 const api = axios.create({
-  baseURL: envBaseUrl || 'http://localhost:8080',
-  headers: { 'Content-Type': 'application/json' },
+  baseURL: resolvedBaseUrl,
+  // Do not set a default Content-Type; let Axios/browser decide per request.
   withCredentials: true // REQUIRED for cookies
 });
 
