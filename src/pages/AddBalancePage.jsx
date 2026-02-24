@@ -20,7 +20,7 @@ const AddBalancePage = () => {
         try {
             const payload = { amount: Number(amount)};
             // const payload = { amount: Number(amount), paymentMethod };
-            const res = await api.post('/profile/add-balance', payload);
+            const res = await api.post('/deposit-balance', payload);
             if (res.status === 200 || res.status === 201) {
                 alert(res.data?.message || 'Balance added successfully');
                 navigate('/profile');

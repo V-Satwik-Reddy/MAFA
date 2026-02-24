@@ -678,7 +678,7 @@ const ChatPage = () => {
         if (selectedAgent === 'execute') return '/ea-chat';
         if (selectedAgent === 'research') return '/mra-chat';
         if (selectedAgent === 'portfolio') return '/pa-chat';
-        return '/general-chat';
+        return '/mcp-chat';
     };
 
     const resolveToolFromResponse = (payload) => {

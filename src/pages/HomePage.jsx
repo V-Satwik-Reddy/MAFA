@@ -26,7 +26,7 @@ const HomePage = () => {
             try {
                 // Fetch user holdings
                 const [holdingRes, scRes] = await Promise.all([
-                    api.get('/profile/holdings'),
+                    api.get('/holdings'),
                     api.get('/user-stockchange')
                 ]);
 
