@@ -107,14 +107,17 @@ const HomePage = () => {
                         : [];
 
                 const mapped = raw.map((a) => {
+                    const triggered = a?.triggeredAt ? new Date(a.triggeredAt) : null;
                     const created = a?.createdAt ? new Date(a.createdAt) : null;
-                    const timeAgo = created ? formatTimeAgo(created) : '—';
+                    const referenceDate = triggered || created;
+                    const timeAgo = referenceDate ? formatTimeAgo(referenceDate) : '—';
                     return {
                         id: a?.id,
                         symbol: a?.symbol || 'N/A',
                         condition: a?.condition || 'ABOVE',
                         targetPrice: Number(a?.targetPrice) || 0,
                         status: a?.status || 'TRIGGERED',
+                        triggeredAt: triggered,
                         createdAt: created,
                         timeAgo,
                     };

@@ -64,9 +64,10 @@ const MarkdownMessage = ({ content }) => (
 );
 
 const AGENTS = [
-    { key: 'execute', label: 'Trade Execution', icon: Zap, desc: 'Execute buy/sell orders' },
-    { key: 'research', label: 'Market Research', icon: Compass, desc: 'Analyze market trends' },
-    { key: 'portfolio', label: 'Portfolio Manager', icon: ChartPie, desc: 'Manage your portfolio' },
+    { key: 'execute', label: 'Trade Execution', icon: Zap, desc: 'Execute buy/sell orders', endpoint: '/ea-chat' },
+    { key: 'research', label: 'Market Research', icon: Compass, desc: 'Analyze market trends', endpoint: '/mra-chat' },
+    { key: 'portfolio', label: 'Portfolio Manager', icon: ChartPie, desc: 'Manage your portfolio', endpoint: '/pa-chat' },
+    { key: 'strategy', label: 'Investment Strategy', icon: Sparkles, desc: 'Plan investment strategies', endpoint: '/isa-chat' },
 ];
 
 const ChatPage = () => {
@@ -77,27 +78,66 @@ const ChatPage = () => {
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [selectedAgent, setSelectedAgent] = useState(null);
     const [agentsCollapsed, setAgentsCollapsed] = useState(false);
+    const [chatPage, setChatPage] = useState(0);
+    const [hasMoreChats, setHasMoreChats] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const messagesEndRef = useRef(null);
+    const chatContainerRef = useRef(null);
+    const loadMoreTriggeredRef = useRef(false);
+    const shouldAutoScroll = useRef(true);
+    const streamingTextRef = useRef('');
+    const streamingIdRef = useRef(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
+    // Only auto-scroll to bottom when the user sent a new message or bot is streaming
+    // NOT when older messages are prepended
     useEffect(() => {
-        scrollToBottom();
+        if (shouldAutoScroll.current) {
+            scrollToBottom();
+        }
     }, [messages]);
 
-    // Load past chats on mount
+    // Auto-load older messages when user scrolls to top
+    useEffect(() => {
+        const container = chatContainerRef.current;
+        if (!container) return;
+
+        const handleScroll = () => {
+            // If user scrolled near top, load more
+            if (container.scrollTop < 80 && hasMoreChats && !loadingMore && !loadingHistory && messages.length > 0 && !loadMoreTriggeredRef.current) {
+                loadMoreTriggeredRef.current = true;
+                shouldAutoScroll.current = false;
+                loadMoreChats().finally(() => {
+                    loadMoreTriggeredRef.current = false;
+                });
+            }
+
+            // Track if user is near bottom (for auto-scroll decision)
+            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+            shouldAutoScroll.current = isNearBottom;
+        };
+
+        container.addEventListener('scroll', handleScroll, { passive: true });
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [hasMoreChats, loadingMore, loadingHistory, messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Load past chats on mount (paginated)
     useEffect(() => {
         const fetchHistory = async () => {
             try {
                 setLoadingHistory(true);
-                const res = await api.get('/chats');
+                const res = await api.get('/chats', { params: { limit: 20, page: 0 } });
                 const raw = Array.isArray(res.data.data)
                     ? res.data.data
                     : Array.isArray(res?.data)
                         ? res.data
                         : [];
+
+                if (raw.length < 20) setHasMoreChats(false);
+                setChatPage(1);
 
                 const historyMessages = [];
                 raw.forEach((item, idx) => {
@@ -133,9 +173,71 @@ const ChatPage = () => {
         fetchHistory();
     }, []);
 
-    // Stream bot response word-by-word
+    const loadMoreChats = async () => {
+        if (loadingMore || !hasMoreChats) return;
+        setLoadingMore(true);
+
+        // Save scroll position to restore after prepending
+        const container = chatContainerRef.current;
+        const prevScrollHeight = container ? container.scrollHeight : 0;
+
+        try {
+            const res = await api.get('/chats', { params: { limit: 20, page: chatPage } });
+            const raw = Array.isArray(res.data.data)
+                ? res.data.data
+                : Array.isArray(res?.data)
+                    ? res.data
+                    : [];
+
+            if (raw.length < 20) setHasMoreChats(false);
+            setChatPage((p) => p + 1);
+
+            const olderMessages = [];
+            raw.forEach((item, idx) => {
+                const ts = new Date();
+                const offset = chatPage * 20;
+                if (item?.userQuery) {
+                    olderMessages.push({
+                        id: `h-u-${offset + idx}`,
+                        sender: 'user',
+                        text: item.userQuery,
+                        timestamp: ts,
+                    });
+                }
+                if (item?.agentResponse) {
+                    olderMessages.push({
+                        id: `h-b-${offset + idx}`,
+                        sender: 'bot',
+                        text: item.agentResponse,
+                        timestamp: ts,
+                    });
+                }
+            });
+
+            if (olderMessages.length) {
+                shouldAutoScroll.current = false;
+                setMessages((prev) => [...olderMessages, ...prev]);
+                // Restore scroll position so the view doesn't jump
+                requestAnimationFrame(() => {
+                    if (container) {
+                        container.scrollTop = container.scrollHeight - prevScrollHeight;
+                    }
+                });
+            }
+        } catch (err) {
+            console.error('Failed to load more chats', err);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
+    // Stream bot response — use ref to avoid per-word state updates, only commit periodically
     const streamBotResponse = (fullText) => {
         const botId = Date.now();
+        streamingIdRef.current = botId;
+        streamingTextRef.current = '';
+        shouldAutoScroll.current = true;
+
         const placeholder = {
             id: botId,
             sender: 'bot',
@@ -147,13 +249,22 @@ const ChatPage = () => {
 
         const words = fullText.split(' ');
         let i = 0;
+        const BATCH_SIZE = 5; // flush every 5 words instead of every 1
+
         const interval = setInterval(() => {
             i += 1;
-            const partial = words.slice(0, i).join(' ');
-            setMessages((prev) => prev.map((m) => (m.id === botId ? { ...m, text: partial } : m)));
+            streamingTextRef.current = words.slice(0, i).join(' ');
+
+            // Only update React state every BATCH_SIZE words, or on the last word
+            if (i % BATCH_SIZE === 0 || i >= words.length) {
+                const text = streamingTextRef.current;
+                setMessages((prev) => prev.map((m) => (m.id === botId ? { ...m, text } : m)));
+            }
+
             if (i >= words.length) {
                 clearInterval(interval);
                 setIsTyping(false);
+                streamingIdRef.current = null;
             }
         }, 30);
     };
@@ -172,9 +283,13 @@ const ChatPage = () => {
         setInputMessage('');
         setIsTyping(true);
         setShowLoader(true);
+        shouldAutoScroll.current = true;
 
         try {
-            const { data } = await api.post('/mcp-chat', { userQuery: inputMessage });
+            // Route to the correct agent endpoint based on selection
+            const agentConfig = AGENTS.find((a) => a.key === selectedAgent);
+            const endpoint = agentConfig ? agentConfig.endpoint : '/mcp-chat';
+            const { data } = await api.post(endpoint, { userQuery: inputMessage });
             setShowLoader(false);
 
             let fullText = '';
@@ -251,13 +366,33 @@ const ChatPage = () => {
                                 }`}
                             >
                                 <div className="px-3 pb-3 flex flex-col gap-1.5">
+                                    {/* General / MCP mode */}
+                                    <button
+                                        onClick={() => setSelectedAgent(null)}
+                                        className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all border ${
+                                            selectedAgent === null
+                                                ? 'bg-blue-600/90 border-blue-500/60 text-white shadow-lg shadow-blue-500/20'
+                                                : 'bg-white/[0.06] border-white/[0.08] text-blue-100/90 hover:bg-white/10 hover:border-white/15'
+                                        }`}
+                                    >
+                                        <Bot className="w-4 h-4 flex-shrink-0" />
+                                        <div className="text-left">
+                                            <p className="leading-tight">General</p>
+                                            <p className={`text-[10px] leading-tight mt-0.5 ${selectedAgent === null ? 'text-blue-200' : 'text-blue-300/60'}`}>
+                                                MCP multi-agent assistant
+                                            </p>
+                                        </div>
+                                    </button>
+
+                                    <div className="border-t border-white/10 my-1" />
+
                                     {AGENTS.map((agent) => {
                                         const Icon = agent.icon;
                                         const active = selectedAgent === agent.key;
                                         return (
                                             <button
                                                 key={agent.key}
-                                                onClick={() => setSelectedAgent((prev) => (prev === agent.key ? null : agent.key))}
+                                                onClick={() => setSelectedAgent(agent.key)}
                                                 className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all border ${
                                                     active
                                                         ? 'bg-blue-600/90 border-blue-500/60 text-white shadow-lg shadow-blue-500/20'
@@ -274,9 +409,6 @@ const ChatPage = () => {
                                             </button>
                                         );
                                     })}
-                                    <div className="mt-3 px-1 text-[11px] text-blue-300/50 leading-relaxed">
-                                        Select an agent or leave unselected for the general assistant.
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -303,8 +435,17 @@ const ChatPage = () => {
                                 </div>
 
                                 {/* Messages area */}
-                                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 scroll-smooth">
+                                <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 scroll-smooth">
 
+                                    {/* Auto-loading indicator at top */}
+                                    {loadingMore && (
+                                        <div className="flex justify-center py-2">
+                                            <div className="flex items-center gap-2 text-xs text-blue-200/60">
+                                                <Loader className="w-3 h-3 animate-spin" />
+                                                <span>Loading older messages...</span>
+                                            </div>
+                                        </div>
+                                    )}
                                     {/* Welcome state */}
                                     {isEmpty && (
                                         <div className="h-full flex flex-col items-center justify-center text-center px-4 gap-4 select-none">

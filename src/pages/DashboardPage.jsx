@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
     BarChart3,
     PieChart,
@@ -11,8 +11,10 @@ import {
     Wallet,
     Layers,
     Loader,
+    LineChart as LineChartIcon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart } from 'recharts';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
 
@@ -51,6 +53,41 @@ const DashboardPage = () => {
     const [dayChangePercent, setDayChangePercent] = useState(0);
     const [loadingDashboard, setLoadingDashboard] = useState(true);
     const [loadingTrades, setLoadingTrades] = useState(true);
+
+    // Portfolio history
+    const [historyData, setHistoryData] = useState([]);
+    const [historyPeriod, setHistoryPeriod] = useState('LAST_30_DAYS');
+    const [historyInterval, setHistoryInterval] = useState('DAILY');
+    const [loadingHistory, setLoadingHistory] = useState(false);
+
+    const HISTORY_PERIODS = [
+        { value: 'LAST_7_DAYS', label: '1W' },
+        { value: 'LAST_30_DAYS', label: '1M' },
+        { value: 'LAST_90_DAYS', label: '3M' },
+        { value: 'LAST_1_YEAR', label: '1Y' },
+    ];
+
+    const fetchPortfolioHistory = useCallback(async () => {
+        try {
+            setLoadingHistory(true);
+            const res = await api.get('/portfolio/history', {
+                params: { period: historyPeriod, interval: historyInterval }
+            });
+            const raw = Array.isArray(res?.data?.data) ? res.data.data : [];
+            setHistoryData(raw.map(d => ({
+                date: d.date ? new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—',
+                totalValue: Number(d.totalValue || 0),
+                cashBalance: Number(d.cashBalance || 0),
+                investedValue: Number(d.investedValue || 0),
+            })));
+        } catch (err) {
+            console.error('Failed to fetch portfolio history', err);
+        } finally {
+            setLoadingHistory(false);
+        }
+    }, [historyPeriod, historyInterval]);
+
+    useEffect(() => { fetchPortfolioHistory(); }, [fetchPortfolioHistory]);
 
     const agentInsights = [
         { agent: 'Technical Analysis', status: 'active', lastUpdate: '2 mins ago', message: 'Bullish trend detected in AAPL' },
@@ -333,8 +370,8 @@ const DashboardPage = () => {
                     </div>
 
                     {/* Allocation */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                        <div className="flex items-center justify-between mb-5">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col max-h-[500px]">
+                        <div className="flex items-center justify-between mb-5 flex-shrink-0">
                             <div>
                                 <h2 className="text-lg font-bold text-gray-900">Asset Allocation</h2>
                                 <p className="text-xs text-gray-400 mt-0.5">By sector</p>
@@ -352,7 +389,7 @@ const DashboardPage = () => {
                         ) : (
                             <>
                                 {/* Stacked bar */}
-                                <div className="flex w-full h-4 rounded-full overflow-hidden mb-4">
+                                <div className="flex w-full h-4 rounded-full overflow-hidden mb-4 flex-shrink-0">
                                     {allocation.map((item, i) => (
                                         <div
                                             key={item.sector}
@@ -363,7 +400,7 @@ const DashboardPage = () => {
                                     ))}
                                 </div>
 
-                                <div className="space-y-3">
+                                <div className="space-y-3 overflow-y-auto flex-1 min-h-0 pr-1">
                                     {allocation.map((item, i) => (
                                         <div key={item.sector}>
                                             <div className="flex justify-between text-sm mb-1">
@@ -386,6 +423,86 @@ const DashboardPage = () => {
                             </>
                         )}
                     </div>
+                </div>
+
+                {/* ── Portfolio History Chart ── */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+                    <div className="flex items-center justify-between mb-5">
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900">Portfolio History</h2>
+                            <p className="text-xs text-gray-400 mt-0.5">Track your portfolio value over time</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {HISTORY_PERIODS.map(p => (
+                                <button
+                                    key={p.value}
+                                    onClick={() => setHistoryPeriod(p.value)}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                                        historyPeriod === p.value
+                                            ? 'bg-blue-600 text-white shadow-sm'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    {p.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {loadingHistory ? (
+                        <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
+                            <Loader className="w-5 h-5 animate-spin" />
+                            <span>Loading history...</span>
+                        </div>
+                    ) : historyData.length === 0 ? (
+                        <div className="text-center py-16">
+                            <LineChartIcon className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+                            <p className="text-sm text-gray-400">No portfolio history data available</p>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Legend */}
+                            <div className="flex items-center gap-5 mb-4">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-3 h-3 rounded-full bg-blue-500" />
+                                    <span className="text-xs font-medium text-gray-600">Total Value</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-3 h-3 rounded-full bg-emerald-500" />
+                                    <span className="text-xs font-medium text-gray-600">Invested</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-3 h-3 rounded-full bg-amber-500" />
+                                    <span className="text-xs font-medium text-gray-600">Cash Balance</span>
+                                </div>
+                            </div>
+
+                            <ResponsiveContainer width="100%" height={280}>
+                                <AreaChart data={historyData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                                    <defs>
+                                        <linearGradient id="totalValueGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
+                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                        </linearGradient>
+                                        <linearGradient id="investedGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                                    <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                                        formatter={(value, name) => [`$${Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })}`, name]}
+                                    />
+                                    <Area type="monotone" dataKey="totalValue" name="Total Value" stroke="#3b82f6" strokeWidth={2} fill="url(#totalValueGrad)" />
+                                    <Area type="monotone" dataKey="investedValue" name="Invested" stroke="#10b981" strokeWidth={1.5} fill="url(#investedGrad)" strokeDasharray="4 2" />
+                                    <Line type="monotone" dataKey="cashBalance" name="Cash Balance" stroke="#f59e0b" strokeWidth={1.5} dot={false} strokeDasharray="3 3" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </>
+                    )}
                 </div>
 
                 {/* ── Current Positions table ── */}
