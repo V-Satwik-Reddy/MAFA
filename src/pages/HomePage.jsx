@@ -66,8 +66,6 @@ const HomePage = () => {
                     0,
                 );
                 setPortfolioValue(portfolioTotal);
-                setTodaysGain(0);
-                setTodaysGainPercent(0);
                 setActivePositions(holdings.length);
 
                 try {
@@ -79,6 +77,19 @@ const HomePage = () => {
                         changePercent: Number(item?.changePercent) || 0,
                     }));
                     setMarketData(normalized);
+
+                    let dailyGain = 0;
+                    normalized.forEach(stock => {
+                        const holding = holdings.find(h => h.symbol === stock.symbol);
+                        if (holding) {
+                            dailyGain += stock.change * holding.quantity;
+                        }
+                    });
+
+                    setTodaysGain(dailyGain);
+                    // Prevent division by zero, and use yesterday's total (portfolioTotal - dailyGain) for accurate percentage
+                    const previousTotal = portfolioTotal - dailyGain;
+                    setTodaysGainPercent(previousTotal > 0 ? (dailyGain / previousTotal) * 100 : 0);
                 } catch (err) {
                     console.error('Failed to fetch user stock changes', err);
                     setMarketData([]);

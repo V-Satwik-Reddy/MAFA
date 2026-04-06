@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, lazy } from 'react';
 import {
     BarChart3,
     PieChart,
@@ -14,9 +14,17 @@ import {
     LineChart as LineChartIcon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart } from 'recharts';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
+
+const ResponsiveContainer = lazy(() => import('recharts').then(mod => ({ default: mod.ResponsiveContainer })));
+const AreaChart = lazy(() => import('recharts').then(mod => ({ default: mod.AreaChart })));
+const Area = lazy(() => import('recharts').then(mod => ({ default: mod.Area })));
+const XAxis = lazy(() => import('recharts').then(mod => ({ default: mod.XAxis })));
+const YAxis = lazy(() => import('recharts').then(mod => ({ default: mod.YAxis })));
+const Tooltip = lazy(() => import('recharts').then(mod => ({ default: mod.Tooltip })));
+const CartesianGrid = lazy(() => import('recharts').then(mod => ({ default: mod.CartesianGrid })));
+const Line = lazy(() => import('recharts').then(mod => ({ default: mod.Line })));
 
 const SECTOR_COLORS = [
     'from-blue-500 to-blue-600',
@@ -57,7 +65,7 @@ const DashboardPage = () => {
     // Portfolio history
     const [historyData, setHistoryData] = useState([]);
     const [historyPeriod, setHistoryPeriod] = useState('LAST_30_DAYS');
-    const [historyInterval, setHistoryInterval] = useState('DAILY');
+    const [historyInterval] = useState('DAILY');
     const [loadingHistory, setLoadingHistory] = useState(false);
 
     const HISTORY_PERIODS = [
@@ -477,30 +485,32 @@ const DashboardPage = () => {
                                 </div>
                             </div>
 
-                            <ResponsiveContainer width="100%" height={280}>
-                                <AreaChart data={historyData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                                    <defs>
-                                        <linearGradient id="totalValueGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
-                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                        </linearGradient>
-                                        <linearGradient id="investedGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
-                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                                    <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                                    <Tooltip
-                                        contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
-                                        formatter={(value, name) => [`$${Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })}`, name]}
-                                    />
-                                    <Area type="monotone" dataKey="totalValue" name="Total Value" stroke="#3b82f6" strokeWidth={2} fill="url(#totalValueGrad)" />
-                                    <Area type="monotone" dataKey="investedValue" name="Invested" stroke="#10b981" strokeWidth={1.5} fill="url(#investedGrad)" strokeDasharray="4 2" />
-                                    <Line type="monotone" dataKey="cashBalance" name="Cash Balance" stroke="#f59e0b" strokeWidth={1.5} dot={false} strokeDasharray="3 3" />
-                                </AreaChart>
-                            </ResponsiveContainer>
+                            <React.Suspense fallback={<p>Loading Chart...</p>}>
+                                <ResponsiveContainer width="100%" height={280}>
+                                    <AreaChart data={historyData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                                        <defs>
+                                            <linearGradient id="totalValueGrad" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
+                                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                            </linearGradient>
+                                            <linearGradient id="investedGrad" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
+                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                                        <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                                        <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                                            formatter={(value, name) => [`$${Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })}`, name]}
+                                        />
+                                        <Area type="monotone" dataKey="totalValue" name="Total Value" stroke="#3b82f6" strokeWidth={2} fill="url(#totalValueGrad)" />
+                                        <Area type="monotone" dataKey="investedValue" name="Invested" stroke="#10b981" strokeWidth={1.5} fill="url(#investedGrad)" strokeDasharray="4 2" />
+                                        <Line type="monotone" dataKey="cashBalance" name="Cash Balance" stroke="#f59e0b" strokeWidth={1.5} dot={false} strokeDasharray="3 3" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </React.Suspense>
                         </>
                     )}
                 </div>

@@ -2,10 +2,18 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader, Zap, Compass, PanelLeftOpen, PanelLeft, ChartPie, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
+import json from 'react-syntax-highlighter/dist/esm/languages/prism/json';
+import markdown from 'react-syntax-highlighter/dist/esm/languages/prism/markdown';
+import jsx from 'react-syntax-highlighter/dist/esm/languages/prism/jsx'; // Add any other expected languages
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
+
+// Register only what your AI agent actually outputs
+SyntaxHighlighter.registerLanguage('json', json);
+SyntaxHighlighter.registerLanguage('markdown', markdown);
+SyntaxHighlighter.registerLanguage('jsx', jsx);
 
 /* ── Markdown renderer for bot messages ── */
 const MarkdownMessage = ({ content }) => (

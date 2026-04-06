@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowLeft, TrendingUp, TrendingDown, Filter, Download, ChevronLeft, ChevronRight, Calendar, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import Navbar from '../components/Navbar';
 import api from '../api/axios';
 
@@ -193,6 +191,9 @@ const TransactionsPage = () => {
                 alert('No transactions found for the selected period.');
                 return;
             }
+
+            const { jsPDF } = await import('jspdf');
+            const { default: autoTable } = await import('jspdf-autotable');
 
             const doc = new jsPDF();
             doc.setFontSize(18);
