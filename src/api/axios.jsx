@@ -2,9 +2,9 @@
 import axios from 'axios';
 
 // Base API URL is injected via environment variables; default only for local dev.
-const envBaseUrl = process.env.REACT_APP_API_BASE_URL;
-if (!envBaseUrl && process.env.NODE_ENV === 'production') {
-  throw new Error('Missing REACT_APP_API_BASE_URL. Set it in your .env before building.');
+const envBaseUrl = import.meta.env.VITE_API_BASE_URL;
+if (!envBaseUrl && import.meta.env.MODE === 'production') {
+  console.warn('Missing VITE_API_BASE_URL. Set it in your .env before building.');
 }
 
 const api = axios.create({

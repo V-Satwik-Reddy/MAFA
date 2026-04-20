@@ -42,15 +42,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const didRefresh = useRef(false);
   const basename = useMemo(() => {
-    if (!process.env.PUBLIC_URL) return "/";
-
-    try {
-      const url = new URL(process.env.PUBLIC_URL);
-      const pathname = url.pathname.replace(/\/$/, "");
-      return pathname || "/";
-    } catch {
-      return process.env.PUBLIC_URL;
-    }
+    return import.meta.env.BASE_URL || "/";
   }, []);
 
   useEffect(() => {
