@@ -26,13 +26,13 @@
     "build": "vite build",
     "test": "test",
     "eject": "react-scripts eject",
-    "predeploy": "npm run build && node scripts/copy404.js",
-    "deploy": "gh-pages -d build",
+    "predeploy": "npm run build && node scripts/copy404.jsx",
+    "deploy": "gh-pages -d dist",
     "dev": "vite",
     "preview": "vite preview"
   },
   "eslintConfig": {
-    "extends": [
+    "extends": [ 
       "react-app",
       "react-app/jest"
     ]

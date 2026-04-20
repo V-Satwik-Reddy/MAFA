@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const buildDir = path.join(__dirname, '..', 'build');
+const buildDir = path.join(__dirname, '..', 'dist');
 const indexPath = path.join(buildDir, 'index.html');
 const notFoundPath = path.join(buildDir, '404.html');
 

@@ -13,7 +13,7 @@ import AddBalancePage from './pages/AddBalancePage';
 import WelcomePage from './pages/WelcomePage';
 import TransactionsPage from './pages/TransactionsPage';
 import TradeExecutionPage from './pages/TradeExecutionPage';
-import GraphsPage from './pages/GraphsPage';
+const GraphsPage = React.lazy(() => import('./pages/GraphsPage'));
 import CreateProfilePage from './pages/CreateProfilePage';
 import WatchlistPage from './pages/WatchlistPage';
 import AlertsPage from './pages/AlertsPage';
