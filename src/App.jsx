@@ -42,7 +42,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const didRefresh = useRef(false);
   const basename = useMemo(() => {
-    return import.meta.env.BASE_URL || "/";
+    return import.meta.env.BASE_URL || "/MAFA";
   }, []);
 
   useEffect(() => {
