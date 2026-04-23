@@ -80,7 +80,7 @@ const CreateProfilePage = () => {
       try {
         setSectorsLoading(true);
         const sres = await api.get('/sectors');
-        setSectorsList(Array.isArray(sres?.data?.data) ? sres.data.data : []);
+        setSectorsList(Array.isArray(sres?.data) ? sres.data : sres?.data?.data || []);
       } catch { setSectorsList([]); }
       finally { setSectorsLoading(false); }
     })();
@@ -428,10 +428,10 @@ const CreateProfilePage = () => {
                         <select value={createData.salaryRange} onChange={e => field('salaryRange', e.target.value)}
                           className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
                           <option value="">Select range</option>
-                          <option value="<50k">Below $50k</option>
-                          <option value="50k-100k">$50k – $100k</option>
-                          <option value="100k-250k">$100k – $250k</option>
-                          <option value=">250k">Above $250k</option>
+                          <option value="below_50k">Below $50k</option>
+                          <option value="50k_100k">$50k – $100k</option>
+                          <option value="100k_200k">$100k – $200k</option>
+                          <option value="above_200k">Above $200k</option>
                         </select>
                       </div>
                     </div>
@@ -500,16 +500,9 @@ const CreateProfilePage = () => {
                     <TrendingUp className="w-4 h-4 text-purple-500" /> Preferred Asset
                   </label>
                   <div className="flex flex-wrap gap-3">
-                    <button type="button"
-                      className="px-4 py-2 rounded-lg border-2 border-purple-500 bg-purple-50 text-purple-700 font-medium text-sm">
+                    <button type="button" disabled className="px-4 py-2 rounded-lg border-2 border-purple-500 bg-purple-50 text-purple-700 font-medium text-sm cursor-not-allowed">
                       Stocks (Equities)
                     </button>
-                    {['Crypto', 'Commodities', 'Mutual Funds / ETFs'].map(a => (
-                      <button key={a} type="button" disabled
-                        className="px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-400 text-sm cursor-not-allowed">
-                        {a} <span className="text-xs">(soon)</span>
-                      </button>
-                    ))}
                   </div>
                 </div>
 

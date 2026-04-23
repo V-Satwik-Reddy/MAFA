@@ -12,12 +12,12 @@ const ProfilePage = () => {
         email: '',
         phone: '',
         balance: 0.0,
-        riskProfile: 'moderate',
-        preferredAssets: ['stocks'],
+        riskProfile: 'MODERATE',
+        preferredAssets: ['STOCKS'],
         firstName: '',
         lastName: '',
         dateOfBirth: '',
-        gender: 'prefer_not_to_say',
+        gender: 'PREFER_NOT_TO_SAY',
         addressLine1: '',
         addressLine2: '',
         city: '',
@@ -27,7 +27,7 @@ const ProfilePage = () => {
         jobTitle: '',
         companyName: '',
         industry: '',
-        employmentStatus: 'employed',
+        employmentStatus: 'EMPLOYED',
         salaryRange: '',
     });
     const didFetchProfile = useRef(false);
@@ -41,9 +41,9 @@ const ProfilePage = () => {
     const [preferences, setPreferences] = useState({
         sectors: [],
         companies: [],
-        riskTolerance: 'moderate',
-        preferredAsset: 'stocks',
-        investmentGoal: 'short',
+        riskTolerance: 'MODERATE',
+        preferredAsset: 'STOCKS',
+        investmentGoal: 'SHORT',
     });
     const [prefLoading, setPrefLoading] = useState(true);
     const [isEditingPrefs, setIsEditingPrefs] = useState(false);
@@ -61,43 +61,38 @@ const ProfilePage = () => {
                 const data = response.data.data || {};
                 // Normalize certain fields from backend to match frontend option values
                 const normalizeGender = (g) => {
-                    if (!g) return 'prefer_not_to_say';
+                    if (!g) return 'PREFER_NOT_TO_SAY';
                     const low = String(g).toLowerCase();
-                    if (low.startsWith('m')) return 'male';
-                    if (low.startsWith('f')) return 'female';
-                    return 'prefer_not_to_say';
+                    if (low.startsWith('m')) return 'MALE';
+                    if (low.startsWith('f')) return 'FEMALE';
+                    return 'PREFER_NOT_TO_SAY';
                 };
 
                 const normalizeEmployment = (s) => {
-                    if (!s) return 'employed';
+                    if (!s) return 'EMPLOYED';
                     const low = String(s).toLowerCase();
-                    if (low.includes('student')) return 'student';
-                    if (low.includes('self')) return 'self_employed';
-                    if (low.includes('unemploy')) return 'unemployed';
-                    if (low.includes('retire')) return 'retired';
-                    return 'employed';
+                    if (low.includes('student')) return 'STUDENT';
+                    if (low.includes('self')) return 'SELF_EMPLOYED';
+                    if (low.includes('unemploy')) return 'UNEMPLOYED';
+                    if (low.includes('retire')) return 'RETIRED';
+                    return 'EMPLOYED';
                 };
 
                 const normalizeSalary = (r) => {
                     if (!r) return '';
                     const val = String(r).toLowerCase();
-                    if (val.includes('below') || val.includes('below_50') || val.includes('below50') || (val.includes('50k') && val.includes('below'))) return 'Below_50k';
-                    if (val.includes('between') && val.includes('50') && val.includes('100')) return 'BETWEEN_50k_100k';
-                    if (val.includes('between') && val.includes('100') && val.includes('200')) return 'BETWEEN_100k_200k';
-                    if (val.includes('above') || val.includes('>') || val.includes('200')) return 'Above_200k';
-                    // fallback: try some common backend constants
-                    if (val === 'below_50k' || val === 'below50k' || val === 'below50') return 'Below_50k';
-                    if (val === 'below_50_k' || val === 'below_50') return 'Below_50k';
-                    if (val === 'below_50k') return 'Below_50k';
-                    return r;
+                    if (val.includes('between') && val.includes('50') && val.includes('100') || val === '50k_100k' || val === 'between_50k_100k') return '50k_100k';
+                    if (val.includes('between') && val.includes('100') && val.includes('200') || val.includes('100k_200k') || val === 'between_100k_200k') return '100k_200k';
+                    if (val.includes('above') || val.includes('>') || val.includes('200') || val.includes('above_200k')) return 'above_200k';
+                    return 'below_50k';
                 };
                 setProfile({
                     username: data.username || '',
                     email: data.email || '',
                     phone: data.phone || '',
                     balance: data.balance || 0.0,
-                    riskProfile: data.riskProfile || 'moderate',
-                    preferredAssets: data.preferredAssets || ['stocks'],
+                    riskProfile: data.riskProfile || 'MODERATE',
+                    preferredAssets: data.preferredAssets || ['STOCKS'],
                     firstName: data.firstName || '',
                     lastName: data.lastName || '',
                     dateOfBirth: data.dateOfBirth || '',
@@ -148,9 +143,9 @@ const ProfilePage = () => {
                 setPreferences(prev => ({
                     sectors,
                     companies,
-                    riskTolerance: data.riskTolerance || prev.riskTolerance || 'moderate',
-                    preferredAsset: data.preferredAsset || prev.preferredAsset || 'stocks',
-                    investmentGoal: data.investmentGoals || data.investmentGoal || prev.investmentGoal || 'short',
+                    riskTolerance: data.riskTolerance || prev.riskTolerance || 'MODERATE',
+                    preferredAsset: data.preferredAsset || prev.preferredAsset || 'STOCKS',
+                    investmentGoal: data.investmentGoals || data.investmentGoal || prev.investmentGoal || 'SHORT',
                 }));
 
                 // Hydrate lists with known selected items so chips can resolve names without extra fetches
@@ -190,7 +185,7 @@ const ProfilePage = () => {
         setSectorsLoading(true);
         try {
             const sres = await api.get('/sectors');
-            setSectorsList(sres?.data?.data || []);
+            setSectorsList(Array.isArray(sres?.data) ? sres.data : sres?.data?.data || []);
         } catch (e) {
             console.error('Failed to fetch sectors', e);
         } finally {
@@ -268,9 +263,9 @@ const ProfilePage = () => {
         try {
             // Map frontend preference state to backend PreferenceRequest DTO
             const payload = {
-                investmentGoals: preferences.investmentGoal || preferences.investmentGoals,
-                riskTolerance: preferences.riskTolerance || profile.riskProfile || 'moderate',
-                preferredAsset: preferences.preferredAsset,
+                investmentGoals: preferences.investmentGoal || 'SHORT',
+                riskTolerance: preferences.riskTolerance || 'MODERATE',
+                preferredAsset: 'STOCKS',
                 sectorIds: preferences.sectors,
                 companyIds: preferences.companies,
             };
@@ -491,9 +486,9 @@ const ProfilePage = () => {
                                                     disabled={!isEditing}
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                                                 >
-                                                    <option value="male">Male</option>
-                                                    <option value="female">Female</option>
-                                                    <option value="prefer_not_to_say">Prefer not to say</option>
+                                                    <option value="MALE">Male</option>
+                                                    <option value="FEMALE">Female</option>
+                                                    <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
                                                 </select>
                                             </div>
 
@@ -619,11 +614,11 @@ const ProfilePage = () => {
                                                     disabled={!isEditing}
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                                                 >
-                                                    <option value="employed">Employed</option>
-                                                    <option value="self_employed">Self-employed</option>
-                                                    <option value="student">Student</option>
-                                                    <option value="unemployed">Unemployed</option>
-                                                    <option value="retired">Retired</option>
+                                                    <option value="EMPLOYED">Employed</option>
+                                                    <option value="SELF_EMPLOYED">Self-employed</option>
+                                                    <option value="STUDENT">Student</option>
+                                                    <option value="UNEMPLOYED">Unemployed</option>
+                                                    <option value="RETIRED">Retired</option>
                                                 </select>
                                             </div>
 
@@ -638,10 +633,10 @@ const ProfilePage = () => {
                                                         className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                                                     >
                                                         <option value="">Select range</option>
-                                                        <option value="Below_50k">Below $50k</option>
-                                                        <option value="BETWEEN_50k_100k">$50k–$100k</option>
-                                                        <option value="BETWEEN_100k_200k">$100k–$200k</option>
-                                                        <option value="Above_200k">Above $200k</option>
+                                                        <option value="below_50k">Below $50k</option>
+                                                        <option value="50k_100k">$50k–$100k</option>
+                                                        <option value="100k_200k">$100k–$200k</option>
+                                                        <option value="above_200k">Above $200k</option>
                                                     </select>
                                                 </div>
                                             </div>
@@ -671,15 +666,15 @@ const ProfilePage = () => {
                                                     <label className="block text-sm text-gray-700 mb-2">Risk Tolerance</label>
                                                     <div className="flex gap-3">
                                                         <label className="p-3 border rounded-lg">
-                                                            <input type="radio" name="risk_pref" value="low" checked={preferences.riskTolerance==='low'} onChange={() => setRiskTolerance('low')} disabled={!isEditingPrefs} className="mr-2" />
+                                                            <input type="radio" name="risk_pref" value="LOW" checked={preferences.riskTolerance==='LOW'} onChange={() => setRiskTolerance('LOW')} disabled={!isEditingPrefs} className="mr-2" />
                                                             <span className="font-medium">Low / Conservative</span>
                                                         </label>
                                                         <label className="p-3 border rounded-lg">
-                                                            <input type="radio" name="risk_pref" value="moderate" checked={preferences.riskTolerance==='moderate'} onChange={() => setRiskTolerance('moderate')} disabled={!isEditingPrefs} className="mr-2" />
+                                                            <input type="radio" name="risk_pref" value="MODERATE" checked={preferences.riskTolerance==='MODERATE'} onChange={() => setRiskTolerance('MODERATE')} disabled={!isEditingPrefs} className="mr-2" />
                                                             <span className="font-medium">Moderate</span>
                                                         </label>
                                                         <label className="p-3 border rounded-lg">
-                                                            <input type="radio" name="risk_pref" value="high" checked={preferences.riskTolerance==='high'} onChange={() => setRiskTolerance('high')} disabled={!isEditingPrefs} className="mr-2" />
+                                                            <input type="radio" name="risk_pref" value="HIGH" checked={preferences.riskTolerance==='HIGH'} onChange={() => setRiskTolerance('HIGH')} disabled={!isEditingPrefs} className="mr-2" />
                                                             <span className="font-medium">High / Aggressive</span>
                                                         </label>
                                                     </div>
@@ -779,18 +774,17 @@ const ProfilePage = () => {
                                                 <div>
                                                     <label className="block text-sm text-gray-700 mb-2">Preferred Asset</label>
                                                     <div className="flex gap-3">
-                                                        <button type="button" onClick={() => setPreferredAsset('stocks')} disabled={!isEditingPrefs} className={`px-4 py-2 rounded-lg border ${preferences.preferredAsset === 'stocks' ? 'bg-purple-600 text-white' : 'bg-white text-gray-700'}`}>Stocks</button>
-                                                        <button type="button" onClick={() => setPreferredAsset('crypto')} disabled className="px-4 py-2 rounded-lg border bg-gray-50 text-gray-400 cursor-not-allowed">Crypto (soon)</button>
+                                                        <button type="button" disabled className="px-4 py-2 rounded-lg border bg-purple-600 text-white cursor-not-allowed">Stocks (Equities)</button>
                                                     </div>
                                                 </div>
 
                                                 <div>
                                                     <label className="block text-sm text-gray-700 mb-2">Investment Goal</label>
                                                     <div className="flex gap-2 flex-wrap">
-                                                        {['super_short', 'short', 'medium', 'long'].map(g => (
+                                                        {['SUPER_SHORT', 'SHORT', 'MEDIUM', 'LONG'].map(g => (
                                                             <label key={g} className="p-2 border rounded-lg">
                                                                 <input type="radio" name="pref_goal" value={g} checked={preferences.investmentGoal === g} onChange={() => setInvestmentGoal(g)} disabled={!isEditingPrefs} className="mr-2" />
-                                                                <span className="text-sm">{g === 'super_short' ? 'Super short <2 yrs' : g === 'short' ? 'Short <5 yrs' : g === 'medium' ? 'Medium 5–10 yrs' : 'Long >20 yrs'}</span>
+                                                                <span className="text-sm">{g === 'SUPER_SHORT' ? 'Super short <2 yrs' : g === 'SHORT' ? 'Short <5 yrs' : g === 'MEDIUM' ? 'Medium 5–10 yrs' : 'Long >20 yrs'}</span>
                                                             </label>
                                                         ))}
                                                     </div>
